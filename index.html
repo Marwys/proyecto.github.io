@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Prueba AWS Cognito + IoT Core</title>
+
+  <!-- AWS SDK -->
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1370.0.min.js"></script>
+
+  <!-- AWS IoT SDK (MQTT over WebSocket) -->
+  <script src="https://unpkg.com/aws-iot-device-sdk/browser/aws-iot-sdk-browser-bundle.min.js"></script>
+
+  <!-- Configuración AWS -->
+  <script src="aws-config.js"></script>
+</head>
+
+<body>
+
+<!-- TEXTO DE VERIFICACIÓN -->
+<p style="color: green; font-weight: bold;">
+  ✅ SI VES ESTE TEXTO, ESTE ES EL HTML CORRECTO
+</p>
+
+<h2>Prueba AWS Cognito + AWS IoT Core</h2>
+
+<!-- BOTONES -->
+<button onclick="probarCredenciales()">1️⃣ Probar credenciales Cognito</button>
+<br><br>
+<button onclick="conectarIoT()">2️⃣ Conectar a AWS IoT</button>
+
+<hr>
+
+<p>Abre la consola del navegador (F12) para ver los mensajes.</p>
+
+<script>
+/* =========================
+   VERIFICACIÓN DE CARGA
+   ========================= */
+console.log("📄 index.html cargado correctamente");
+console.log("📦 awsConfig:", window.awsConfig);
+
+/* =========================
+   PASO 1: PROBAR COGNITO
+   ========================= */
+function probarCredenciales() {
+
+  console.log("🔄 Probando credenciales Cognito...");
+
+  if (!window.awsConfig) {
+    console.error("❌ aws-config.js NO está cargado");
+    return;
+  }
+
+  AWS.config.region = awsConfig.region;
+
+  AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+    IdentityPoolId: awsConfig.identityPoolId
+  });
+
+  AWS.config.credentials.get(function (err) {
+    if (err) {
+      console.error("❌ Error Cognito", err);
+    } else {
+      console.log("✅ Credenciales obtenidas");
+      console.log("🔑 AccessKey:", AWS.config.credentials.accessKeyId);
+    }
+  });
+}
+
+/* =========================
+   PASO 2: CONECTAR A IOT
+   ========================= */
+function conectarIoT() {
+
+  console.log("🔄 Conectando a AWS IoT Core...");
+
+  if (!AWS.config.credentials) {
+    console.warn("⚠️ Credenciales no inicializadas, ejecutando Cognito primero");
+    probarCredenciales();
+  }
+
+  AWS.config.credentials.get(function (err) {
+    if (err) {
+      console.error("❌ Error Cognito", err);
+      return;
+    }
+
+    console.log("✅ Credenciales OK, creando cliente MQTT");
+
+    const client = awsIot.device({
+      region: awsConfig.region,
+      protocol: "wss",
+      host: awsConfig.iotEndpoint,
+
+      accessKeyId: AWS.config.credentials.accessKeyId,
+      secretKey: AWS.config.credentials.secretAccessKey,
+      sessionToken: AWS.config.credentials.sessionToken,
+
+      debug: true
+    });
+
+    client.on("connect", () => {
+      console.log("🚀 CONECTADO A AWS IOT CORE");
+    });
+
+    client.on("error", (err) => {
+      console.error("❌ Error AWS IoT", err);
+    });
+  });
+}
+</script>
+
+</body>
+</html>
