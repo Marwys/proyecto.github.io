@@ -2,29 +2,39 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AWS IoT Web</title>
-
   <!-- AWS SDK -->
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1370.0.min.js"></script>
-
-  <!-- AWS IoT DEVICE SDK (BROWSER – CDN CORRECTO) -->
-  <script src="https://cdn.jsdelivr.net/npm/aws-iot-device-sdk/browser/aws-iot-sdk-browser-bundle.min.js"></script>
+  <!-- AWS IoT Device SDK -->
+  <script src="https://unpkg.com/aws-iot-device-sdk@2.2.13/browser/aws-iot-sdk-browser-bundle.js"></script>
 </head>
 <body>
-
-<h2>AWS IoT Web</h2>
-<button onclick="conectar()">Conectar</button>
-
+<h2>AWS IoT Web - Prueba de Conexión</h2>
+<button onclick="conectar()">Conectar a AWS IoT</button>
+<button onclick="publicar()" id="btnPublicar" disabled>Publicar Mensaje</button>
+<button onclick="limpiar()">Limpiar Log</button>
 <pre id="log"></pre>
 
 <script>
+let client = null;
+
 const log = (m) => {
-  console.log(m);
-  document.getElementById("log").textContent += m + "\n";
+  const timestamp = new Date().toLocaleTimeString();
+  const msg = `[${timestamp}] ${m}`;
+  console.log(msg);
+  document.getElementById("log").textContent += msg + "\n";
+  // Auto-scroll
+  document.getElementById("log").scrollTop = document.getElementById("log").scrollHeight;
 };
 
-log("📄 HTML cargado");
-log("awsIot existe: " + (typeof awsIot));
+function limpiar() {
+  document.getElementById("log").textContent = "";
+}
+
+log("📄 Página cargada");
+log("AWS SDK: " + (typeof AWS !== 'undefined' ? '✅' : '❌'));
+log("awsIot SDK: " + (typeof awsIot !== 'undefined' ? '✅' : '❌'));
 
 const cfg = {
   region: "us-east-1",
@@ -32,43 +42,136 @@ const cfg = {
   iotEndpoint: "a1eyoxsww0xvbl-ats.iot.us-east-1.amazonaws.com"
 };
 
+// Configurar AWS
 AWS.config.region = cfg.region;
 AWS.config.credentials = new AWS.CognitoIdentityCredentials({
   IdentityPoolId: cfg.identityPoolId
 });
 
 function conectar() {
-  log("🔄 Obteniendo credenciales...");
-
-  AWS.config.credentials.get(err => {
+  log("🔄 Iniciando conexión...");
+  log("🔑 Solicitando credenciales de Cognito...");
+  
+  AWS.config.credentials.get((err) => {
     if (err) {
-      log("❌ Cognito error: " + err);
+      log("❌ Error obteniendo credenciales: " + err.message);
       return;
     }
+    
+    log("✅ Credenciales obtenidas");
+    log("🔐 AccessKeyId: " + AWS.config.credentials.accessKeyId.substring(0, 10) + "...");
+    
+    try {
+      const clientId = "web-client-" + Math.floor(Math.random() * 100000);
+      log("📱 ClientId: " + clientId);
+      
+      client = awsIot.device({
+        region: cfg.region,
+        host: cfg.iotEndpoint,
+        protocol: "wss",
+        clientId: clientId,
+        accessKeyId: AWS.config.credentials.accessKeyId,
+        secretKey: AWS.config.credentials.secretAccessKey,
+        sessionToken: AWS.config.credentials.sessionToken,
+        debug: true
+      });
+      
+      log("⏳ Conectando a " + cfg.iotEndpoint + "...");
+      
+      client.on("connect", () => {
+        log("🚀 ¡CONECTADO A AWS IOT CORE!");
+        log("📡 Suscribiéndose al topic 'test/topic'...");
+        
+        client.subscribe("test/topic", (err) => {
+          if (err) {
+            log("❌ Error al suscribirse: " + err.message);
+          } else {
+            log("✅ Suscrito a 'test/topic'");
+            document.getElementById("btnPublicar").disabled = false;
+          }
+        });
+      });
+      
+      client.on("message", (topic, payload) => {
+        log("📨 Mensaje recibido en '" + topic + "': " + payload.toString());
+      });
+      
+      client.on("error", (error) => {
+        log("❌ Error de IoT: " + error.message);
+        console.error("Error completo:", error);
+      });
+      
+      client.on("close", () => {
+        log("🔌 Conexión cerrada");
+        document.getElementById("btnPublicar").disabled = true;
+      });
+      
+      client.on("offline", () => {
+        log("📵 Cliente offline");
+      });
+      
+      client.on("reconnect", () => {
+        log("🔄 Reconectando...");
+      });
+      
+    } catch (error) {
+      log("❌ Error creando cliente: " + error.message);
+      console.error("Error completo:", error);
+    }
+  });
+}
 
-    log("✅ Credenciales OK");
-
-    const client = awsIot.device({
-      region: cfg.region,
-      host: cfg.iotEndpoint,
-      protocol: "wss",
-      clientId: "web-" + Math.random().toString(16).slice(2),
-      accessKeyId: AWS.config.credentials.accessKeyId,
-      secretKey: AWS.config.credentials.secretAccessKey,
-      sessionToken: AWS.config.credentials.sessionToken,
-      debug: true
-    });
-
-    client.on("connect", () => {
-      log("🚀 CONECTADO A AWS IOT");
-    });
-
-    client.on("error", e => {
-      log("❌ IoT error: " + e.message);
-    });
+function publicar() {
+  if (!client) {
+    log("❌ No hay conexión activa");
+    return;
+  }
+  
+  const mensaje = {
+    timestamp: new Date().toISOString(),
+    mensaje: "Hola desde el navegador",
+    random: Math.random()
+  };
+  
+  log("📤 Publicando mensaje...");
+  client.publish("test/topic", JSON.stringify(mensaje), (err) => {
+    if (err) {
+      log("❌ Error publicando: " + err.message);
+    } else {
+      log("✅ Mensaje publicado");
+    }
   });
 }
 </script>
 
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  #log {
+    background: #1e1e1e;
+    color: #00ff00;
+    padding: 15px;
+    border-radius: 5px;
+    max-height: 500px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    margin-top: 20px;
+  }
+</style>
 </body>
 </html>
