@@ -7,13 +7,13 @@
   <!-- AWS SDK -->
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1370.0.min.js"></script>
 
-  <!-- AWS IoT Device SDK (BROWSER BUNDLE) -->
-  <script src="https://unpkg.com/aws-iot-device-sdk/browser/aws-iot-sdk-browser-bundle.min.js"></script>
+  <!-- AWS IoT DEVICE SDK (BROWSER – CDN CORRECTO) -->
+  <script src="https://cdn.jsdelivr.net/npm/aws-iot-device-sdk/browser/aws-iot-sdk-browser-bundle.min.js"></script>
 </head>
 <body>
 
-<h2>AWS IoT + Cognito (Web)</h2>
-<button onclick="conectarIoT()">Conectar a AWS IoT</button>
+<h2>AWS IoT Web</h2>
+<button onclick="conectar()">Conectar</button>
 
 <pre id="log"></pre>
 
@@ -23,35 +23,36 @@ const log = (m) => {
   document.getElementById("log").textContent += m + "\n";
 };
 
-const awsConfig = {
+log("📄 HTML cargado");
+log("awsIot existe: " + (typeof awsIot));
+
+const cfg = {
   region: "us-east-1",
   identityPoolId: "us-east-1:7860e2f2-eb64-4494-9c2a-fe735c8912ec",
   iotEndpoint: "a1eyoxsww0xvbl-ats.iot.us-east-1.amazonaws.com"
 };
 
-log("📄 HTML cargado");
-
-AWS.config.region = awsConfig.region;
+AWS.config.region = cfg.region;
 AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-  IdentityPoolId: awsConfig.identityPoolId
+  IdentityPoolId: cfg.identityPoolId
 });
 
-function conectarIoT() {
-  log("🔄 Obteniendo credenciales Cognito...");
+function conectar() {
+  log("🔄 Obteniendo credenciales...");
 
-  AWS.config.credentials.get((err) => {
+  AWS.config.credentials.get(err => {
     if (err) {
-      log("❌ Error Cognito: " + err);
+      log("❌ Cognito error: " + err);
       return;
     }
 
     log("✅ Credenciales OK");
 
     const client = awsIot.device({
-      region: awsConfig.region,
+      region: cfg.region,
+      host: cfg.iotEndpoint,
       protocol: "wss",
-      host: awsConfig.iotEndpoint,
-      clientId: "web-" + Math.random().toString(16).substr(2, 8),
+      clientId: "web-" + Math.random().toString(16).slice(2),
       accessKeyId: AWS.config.credentials.accessKeyId,
       secretKey: AWS.config.credentials.secretAccessKey,
       sessionToken: AWS.config.credentials.sessionToken,
@@ -60,14 +61,9 @@ function conectarIoT() {
 
     client.on("connect", () => {
       log("🚀 CONECTADO A AWS IOT");
-      client.subscribe("esp32/test");
     });
 
-    client.on("message", (topic, payload) => {
-      log(`📩 ${topic}: ${payload.toString()}`);
-    });
-
-    client.on("error", (e) => {
+    client.on("error", e => {
       log("❌ IoT error: " + e.message);
     });
   });
