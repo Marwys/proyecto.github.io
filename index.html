@@ -11,14 +11,21 @@
 <h2>Comunicación con AWS IoT</h2>
 <button onclick="conectar()">Conectar</button>
 <button onclick="publicar()" id="btnPublicar" disabled>Enviar Mensaje</button>
+<button onclick="limpiar()">Limpiar</button>
 <pre id="log"></pre>
 
 <script>
 let client = null;
 
 const log = (m) => {
-  document.getElementById("log").textContent += m + "\n";
+  const time = new Date().toLocaleTimeString();
+  document.getElementById("log").textContent += `[${time}] ${m}\n`;
+  console.log(m);
 };
+
+function limpiar() {
+  document.getElementById("log").textContent = "";
+}
 
 const cfg = {
   region: "us-east-1",
@@ -32,48 +39,93 @@ AWS.config.credentials = new AWS.CognitoIdentityCredentials({
 });
 
 function conectar() {
-  log("⏳ Conectando...");
+  log("🔄 Obteniendo credenciales...");
   
   AWS.config.credentials.get((err) => {
     if (err) {
-      log("❌ Error: " + err.message);
+      log("❌ Error Cognito: " + err.message);
       return;
     }
     
+    log("✅ Credenciales OK");
+    log("🔐 AccessKey: " + AWS.config.credentials.accessKeyId.substring(0, 10) + "...");
+    
+    // Verificar identidad (para debug)
+    const sts = new AWS.STS();
+    sts.getCallerIdentity({}, (err, data) => {
+      if (err) {
+        log("⚠️ STS error: " + err.message);
+      } else {
+        log("👤 Identity ARN: " + data.Arn);
+      }
+    });
+    
     const clientId = "web-" + Math.floor(Math.random() * 100000);
+    log("📱 ClientId: " + clientId);
+    
     const url = crearUrlFirmada();
+    log("🔗 URL generada (primeros 100 chars): " + url.substring(0, 100) + "...");
+    
+    log("⏳ Conectando a AWS IoT...");
     
     client = mqtt.connect(url, {
       clientId: clientId,
-      keepalive: 30
+      keepalive: 30,
+      connectTimeout: 30000,
+      reconnectPeriod: 0 // No reconectar automáticamente
     });
     
     client.on("connect", () => {
-      log("✅ CONECTADO");
-      client.subscribe("test/topic");
-      document.getElementById("btnPublicar").disabled = false;
+      log("🚀 ¡CONECTADO A AWS IOT!");
+      client.subscribe("test/topic", (err) => {
+        if (err) {
+          log("❌ Error suscripción: " + err.message);
+        } else {
+          log("✅ Suscrito a test/topic");
+          document.getElementById("btnPublicar").disabled = false;
+        }
+      });
     });
     
     client.on("message", (topic, message) => {
-      log("📨 Recibido: " + message.toString());
+      log("📨 [" + topic + "] " + message.toString());
     });
     
     client.on("error", (error) => {
-      log("❌ Error: " + error.message);
+      log("❌ Error MQTT: " + error.message);
+      console.error("Error completo:", error);
+    });
+    
+    client.on("close", () => {
+      log("🔌 Conexión cerrada");
+      document.getElementById("btnPublicar").disabled = true;
+    });
+    
+    client.on("offline", () => {
+      log("📵 Offline");
     });
   });
 }
 
 function publicar() {
-  if (!client) return;
+  if (!client || !client.connected) {
+    log("❌ No conectado");
+    return;
+  }
   
   const mensaje = {
     texto: "Hola desde la web",
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    random: Math.random()
   };
   
-  client.publish("test/topic", JSON.stringify(mensaje));
-  log("📤 Mensaje enviado");
+  client.publish("test/topic", JSON.stringify(mensaje), (err) => {
+    if (err) {
+      log("❌ Error publicando: " + err.message);
+    } else {
+      log("✅ Mensaje publicado");
+    }
+  });
 }
 
 function crearUrlFirmada() {
@@ -116,8 +168,11 @@ function crearUrlFirmada() {
   body {
     font-family: Arial, sans-serif;
     padding: 20px;
-    max-width: 600px;
+    max-width: 800px;
     margin: 0 auto;
+  }
+  h2 {
+    color: #333;
   }
   button {
     padding: 10px 20px;
@@ -129,19 +184,25 @@ function crearUrlFirmada() {
     border: none;
     border-radius: 4px;
   }
+  button:hover {
+    background: #0056b3;
+  }
   button:disabled {
     opacity: 0.5;
     background: #6c757d;
+    cursor: not-allowed;
   }
   #log {
-    background: #000;
-    color: #0f0;
+    background: #1e1e1e;
+    color: #00ff00;
     padding: 15px;
     border-radius: 5px;
     height: 400px;
     overflow-y: auto;
-    font-family: monospace;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
     margin-top: 20px;
+    white-space: pre-wrap;
   }
 </style>
 </body>
