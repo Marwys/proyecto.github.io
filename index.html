@@ -106,7 +106,7 @@ function conectar() {
   
   client.on("connect", () => {
     log("🚀 ¡CONECTADO!");
-    client.subscribe("test/topic");
+    client.subscribe("esp32/sub");
     document.getElementById("btnPublicar").disabled = false;
   });
   
@@ -125,7 +125,7 @@ function publicar() {
     timestamp: new Date().toISOString()
   };
   
-  client.publish("test/topic", JSON.stringify(mensaje));
+  client.publish("esp32/pub", JSON.stringify(mensaje));
   log("✅ Enviado");
 }
 </script>
