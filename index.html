@@ -2,138 +2,33 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AWS IoT - Certificados</title>
-  <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+  <title>Obtener Cognito Identity ID</title>
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1370.0.min.js"></script>
 </head>
 <body>
-<h2>AWS IoT con Certificados</h2>
-<button onclick="conectar()">Conectar</button>
-<button onclick="publicar()" id="btnPublicar" disabled>Enviar Mensaje</button>
-<button onclick="limpiar()">Limpiar</button>
-<pre id="log"></pre>
+<h2>Obtener Identity ID</h2>
+<button onclick="obtenerID()">Obtener ID</button>
+<pre id="resultado"></pre>
 
 <script>
-let client = null;
+AWS.config.region = "us-east-1";
+AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+  IdentityPoolId: "us-east-1:7860e2f2-eb64-4494-9c2a-fe735c8912ec"
+});
 
-const log = (m) => {
-  const time = new Date().toLocaleTimeString();
-  document.getElementById("log").textContent += `[${time}] ${m}\n`;
-  console.log(m);
-};
-
-function limpiar() {
-  document.getElementById("log").textContent = "";
-}
-
-// IMPORTANTE: Pega aquí el contenido de tu certificado
-// Reemplaza esto con el contenido del archivo .pem.crt que descargaste
-const CERTIFICATE = `-----BEGIN CERTIFICATE-----
-MIIDWTCCAkGgAwIBAgIUYsvZzg8wM7yFD2ikfPmvGREXZRQwDQYJKoZIhvcNAQEL
-BQAwTTFLMEkGA1UECwxCQW1hem9uIFdlYiBTZXJ2aWNlcyBPPUFtYXpvbi5jb20g
-SW5jLiBMPVNlYXR0bGUgU1Q9V2FzaGluZ3RvbiBDPVVTMB4XDTI2MDEyOTE2MzY1
-NloXDTQ5MTIzMTIzNTk1OVowHjEcMBoGA1UEAwwTQVdTIElvVCBDZXJ0aWZpY2F0
-ZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAOHV28o+EAuTS3PFWng6
-S26a+UYwJlk0GoSEXBKbXskukXPP2baBSnd7vJC5uz2J6zm3eJ8oduCsYGhswVBT
-azJgq4Hv4/9WP2o8a0DjACTou2s4DvoRv5ZxfpR2xns5E2AwNygQJW63owNLvLZg
-dfm0qu55BP/leQDUqLDKyjyP6DFubV431AR3fJr3Z0of/LckDaLE0GEl36WPJ9rJ
-grhOR6G+nO0QlPOl9BiN105PcdlEOI9cTlBzLTaETTDOuNGjM4XNeiOzC5WEFCPI
-C4+3CMFpq3G8yFmpx9bSD3jUHxMLcKx1KQmTPbes08aV1lTzzAoQT28sBC2LFAKo
-IPsCAwEAAaNgMF4wHwYDVR0jBBgwFoAUx2bnr/HN6Jr2BGKXc1NCK3Wa+PMwHQYD
-VR0OBBYEFG6Q1Ejt5yZgWsxTW77DvfdmO/Z4MAwGA1UdEwEB/wQCMAAwDgYDVR0P
-AQH/BAQDAgeAMA0GCSqGSIb3DQEBCwUAA4IBAQBxe6LavIf4D0x1pcAxvpcKIOq6
-3lin3QeXpOchgVIwxqIMCtVR89xu5zs9EZJCRmPdKZZ6Qbt0I5X+c2rlpKaED0DW
-x+kdGvuvtqJv7knRLbRfQiZI5fewrBhxrJiFS88o3uW6gEylnkR10pXt353PDhfC
-Imi0O+BtKAGuIOFRnhtieeG9ncXNsMqxbAi7ilO2i9daXHvw0r4eICsU4Nnmuf0F
-J1BKn4gTSNEoamzUVi/JqooqZGi3uhFzEWO9Pt7la6Zlboptke7Bdtx+YvxII5cK
-phM3FyDe2+plWPuWoryz1ViIJmdlsIyU5CbNNPDTsGKR6WpQh84jdpsjZtp/
------END CERTIFICATE-----`;
-
-// Reemplaza esto con el contenido del archivo .pem.key que descargaste
-const PRIVATE_KEY = `-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEA4dXbyj4QC5NLc8VaeDpLbpr5RjAmWTQahIRcEpteyS6Rc8/Z
-toFKd3u8kLm7PYnrObd4nyh24KxgaGzBUFNrMmCrge/j/1Y/ajxrQOMAJOi7azgO
-+hG/lnF+lHbGezkTYDA3KBAlbrejA0u8tmB1+bSq7nkE/+V5ANSosMrKPI/oMW5t
-XjfUBHd8mvdnSh/8tyQNosTQYSXfpY8n2smCuE5Hob6c7RCU86X0GI3XTk9x2UQ4
-j1xOUHMtNoRNMM640aMzhc16I7MLlYQUI8gLj7cIwWmrcbzIWanH1tIPeNQfEwtw
-rHUpCZM9t6zTxpXWVPPMChBPbywELYsUAqgg+wIDAQABAoIBAEbh8vyFgk+/yZzq
-wrydv3NV3Qu0rTSub+xMBwIoFhYbMbgh8vmflxntkn/ya9yi31vcRFXgQ3+9Wv0r
-tXla1XiYcvxzqSJJldnoYNma5j6vdbPvgnPnAjVcJhi/NwkSHwy/1XATsUwRA29T
-ZEXx/NWFaWk0Pud6xQIHvXLQE63x/kFet5BayeItjZucFaw/InXVqlHTTN9t8kYJ
-HjEz+Su7qvNP0Jw9ZU233rSKrt8yhwajvceXXu2Gt5W9FNqyiSIFl7Ref7XUbJqE
-XGpGVXZ2o8LtolAVGnlIyuVDlCWWieCuBiPR0TN/jJH6JLzcrjt5jts6MEIYIJ+a
-058O50ECgYEA86vC8e6gFqshwJ4xq2zJLORsPtfQfDhh2jTdn0CToyxJqVUd7OB3
-ZXilyygqw18fMNU9l3L+u3StNWtiHsea/tpLBSjWI1bC3gOClm5z2ON6KSN1CiBt
-KBpbI3HVZcq51sUrEAUg9GCJNDMUahVnLC0i2JCiM8bchfujEeKGa9ECgYEA7UMT
-ShCBlYMO/3ON42MEPadB5iWC3l4lWOYPcWzbkL81JYSSgEIwE/zEBNetoe/Rd7xU
-1JfIpYpJLW1WXpoYRjFnvbvMAOYgNiVYpXnBntAHevb40jswx5HUJzgHUsW9fzKf
-WmIVcZnfGZpqYZcUSrkUmYKG7i3E6v7DTeTcTwsCgYBonYC38BRpRxXZpdF7YNxK
-WtOic3O+MVLJpVLVMZtxPe1uNu3/Kiv4s8CypU8ezDMO+y5TXHrDLofC3JSm1FnW
-OxBkabDuQSyutuEVBtzT7G4hRWjVbTCQPCiO4iuVZWE+NS6U1S7d3Khrcda86O1/
-yO0h/460HhfFqlDLt+6wUQKBgQDJrLlJvIwZpYRrGTMjdHgXXAPE+F+sWsROM4gu
-9sQP3qfzUyQgR6KMas/H+fjKbIpVx80nxDk2lTwslALVeRBnIfm3qlj27qW0wLwA
-NGWjc9rX5/SK5utIyClYiOSYtCKma0ZO0o69uHiOT9ZbS8tg1L+w2OWOsXLv+UvT
-+1RVDwKBgQCowUE7sgtykASyW98VYwwUAZWWq5qDaERgmCzPnGditjzbY1xNrrD3
-Qc/nnEzRO3/rrxi2I3ESBLmoklbvMnbVYWvNdyQ65dIrHGMebeL1vkpFLYSk9Tym
-57+NgIp/mLetUhQnnNK4gZDLQR5uI24HSDf7mMTpKT3r914DJV0dyA==
------END RSA PRIVATE KEY-----`;
-
-const cfg = {
-  iotEndpoint: "a1eyoxsww0xvbl-ats.iot.us-east-1.amazonaws.com"
-};
-
-function conectar() {
-  log("⏳ Conectando a AWS IoT con certificados...");
-  
-  const clientId = "web-" + Math.floor(Math.random() * 100000);
-  log("📱 ClientId: " + clientId);
-  
-  const url = `wss://${cfg.iotEndpoint}/mqtt`;
-  
-  client = mqtt.connect(url, {
-    clientId: clientId,
-    keepalive: 30,
-    protocolVersion: 4,
-    clean: true,
-    reconnectPeriod: 1000,
-    connectTimeout: 30000,
-    transformWsUrl: (url, options, client) => {
-      // Para WebSocket con certificados, necesitas un proxy o usar MQTT sobre TCP
-      // En navegador es más fácil usar Cognito autenticado
-      return url;
+function obtenerID() {
+  AWS.config.credentials.get((err) => {
+    if (err) {
+      document.getElementById("resultado").textContent = "Error: " + err;
+      return;
     }
+    
+    const identityId = AWS.config.credentials.identityId;
+    document.getElementById("resultado").textContent = 
+      "Tu Cognito Identity ID es:\n\n" + identityId + 
+      "\n\nCopia este ID y úsalo en el siguiente paso.";
   });
-  
-  client.on("connect", () => {
-    log("🚀 ¡CONECTADO!");
-    client.subscribe("esp32/pub");
-    document.getElementById("btnPublicar").disabled = false;
-  });
-  
-  client.on("message", (topic, message) => {
-    log("📨 [" + topic + "] " + message.toString());
-  });
-  
-  client.on("error", (error) => {
-    log("❌ Error: " + error.message);
-  });
-}
-
-function publicar() {
-  const mensaje = {
-    texto: "Hola",
-    timestamp: new Date().toISOString()
-  };
-  
-  client.publish("esp32/pub", JSON.stringify(mensaje));
-  log("✅ Enviado");
 }
 </script>
-<style>
-  body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
-  button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-  button:disabled { opacity: 0.5; background: #6c757d; }
-  #log { background: #000; color: #0f0; padding: 15px; border-radius: 5px; height: 400px; overflow-y: auto; font-family: monospace; margin-top: 20px; }
-</style>
 </body>
 </html>
