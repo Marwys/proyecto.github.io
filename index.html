@@ -4,23 +4,23 @@
   <meta charset="UTF-8">
   <title>AWS IoT Web</title>
 
-  <!-- AWS SDK v2 -->
+  <!-- AWS SDK -->
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1370.0.min.js"></script>
 
-  <!-- MQTT.js -->
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <!-- AWS IoT Device SDK (BROWSER BUNDLE) -->
+  <script src="https://unpkg.com/aws-iot-device-sdk/browser/aws-iot-sdk-browser-bundle.min.js"></script>
 </head>
 <body>
 
-<h2>AWS IoT Web</h2>
+<h2>AWS IoT + Cognito (Web)</h2>
 <button onclick="conectarIoT()">Conectar a AWS IoT</button>
 
 <pre id="log"></pre>
 
 <script>
-const log = (msg) => {
-  console.log(msg);
-  document.getElementById("log").textContent += msg + "\n";
+const log = (m) => {
+  console.log(m);
+  document.getElementById("log").textContent += m + "\n";
 };
 
 const awsConfig = {
@@ -29,8 +29,7 @@ const awsConfig = {
   iotEndpoint: "a1eyoxsww0xvbl-ats.iot.us-east-1.amazonaws.com"
 };
 
-log("📄 index.html cargado correctamente");
-log("📦 awsConfig cargado");
+log("📄 HTML cargado");
 
 AWS.config.region = awsConfig.region;
 AWS.config.credentials = new AWS.CognitoIdentityCredentials({
@@ -48,41 +47,28 @@ function conectarIoT() {
 
     log("✅ Credenciales OK");
 
-    const { accessKeyId, secretAccessKey, sessionToken } = AWS.config.credentials;
-
-    const url = `wss://${awsConfig.iotEndpoint}/mqtt`;
-
-    const client = mqtt.connect(url, {
+    const client = awsIot.device({
+      region: awsConfig.region,
       protocol: "wss",
+      host: awsConfig.iotEndpoint,
       clientId: "web-" + Math.random().toString(16).substr(2, 8),
-      username: accessKeyId,
-      password: "",
-      transformWsUrl: (url, options, client) => {
-        return AWS.util.signRequest({
-          method: "GET",
-          url,
-          headers: {
-            "X-Amz-Security-Token": sessionToken
-          }
-        }, {
-          accessKeyId,
-          secretAccessKey,
-          sessionToken
-        }).url;
-      }
+      accessKeyId: AWS.config.credentials.accessKeyId,
+      secretKey: AWS.config.credentials.secretAccessKey,
+      sessionToken: AWS.config.credentials.sessionToken,
+      debug: true
     });
 
     client.on("connect", () => {
-      log("🚀 Conectado a AWS IoT");
+      log("🚀 CONECTADO A AWS IOT");
       client.subscribe("esp32/test");
     });
 
-    client.on("message", (topic, message) => {
-      log(`📩 ${topic}: ${message.toString()}`);
+    client.on("message", (topic, payload) => {
+      log(`📩 ${topic}: ${payload.toString()}`);
     });
 
     client.on("error", (e) => {
-      log("❌ MQTT error: " + e.message);
+      log("❌ IoT error: " + e.message);
     });
   });
 }
