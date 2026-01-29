@@ -106,7 +106,7 @@ function conectar() {
   
   client.on("connect", () => {
     log("🚀 ¡CONECTADO!");
-    client.subscribe("esp32/sub");
+    client.subscribe("esp32/pub");
     document.getElementById("btnPublicar").disabled = false;
   });
   
