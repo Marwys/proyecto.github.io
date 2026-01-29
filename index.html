@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AWS IoT Web</title>
-  <!-- AWS SDK -->
+  <title>AWS IoT Web - MQTT</title>
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1370.0.min.js"></script>
-  <!-- AWS IoT Device SDK -->
-  <script src="https://unpkg.com/aws-iot-device-sdk@2.2.13/browser/aws-iot-sdk-browser-bundle.js"></script>
+  <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 </head>
 <body>
-<h2>AWS IoT Web - Prueba de Conexión</h2>
+<h2>AWS IoT Web - MQTT.js</h2>
 <button onclick="conectar()">Conectar a AWS IoT</button>
 <button onclick="publicar()" id="btnPublicar" disabled>Publicar Mensaje</button>
 <button onclick="limpiar()">Limpiar Log</button>
@@ -24,7 +22,6 @@ const log = (m) => {
   const msg = `[${timestamp}] ${m}`;
   console.log(msg);
   document.getElementById("log").textContent += msg + "\n";
-  // Auto-scroll
   document.getElementById("log").scrollTop = document.getElementById("log").scrollHeight;
 };
 
@@ -32,9 +29,11 @@ function limpiar() {
   document.getElementById("log").textContent = "";
 }
 
-log("📄 Página cargada");
-log("AWS SDK: " + (typeof AWS !== 'undefined' ? '✅' : '❌'));
-log("awsIot SDK: " + (typeof awsIot !== 'undefined' ? '✅' : '❌'));
+window.addEventListener('load', () => {
+  log("📄 Página cargada");
+  log("AWS SDK: " + (typeof AWS !== 'undefined' ? '✅' : '❌'));
+  log("MQTT.js: " + (typeof mqtt !== 'undefined' ? '✅' : '❌'));
+});
 
 const cfg = {
   region: "us-east-1",
@@ -42,13 +41,17 @@ const cfg = {
   iotEndpoint: "a1eyoxsww0xvbl-ats.iot.us-east-1.amazonaws.com"
 };
 
-// Configurar AWS
 AWS.config.region = cfg.region;
 AWS.config.credentials = new AWS.CognitoIdentityCredentials({
   IdentityPoolId: cfg.identityPoolId
 });
 
 function conectar() {
+  if (typeof mqtt === 'undefined') {
+    log("❌ MQTT.js no disponible");
+    return;
+  }
+  
   log("🔄 Iniciando conexión...");
   log("🔑 Solicitando credenciales de Cognito...");
   
@@ -59,88 +62,134 @@ function conectar() {
     }
     
     log("✅ Credenciales obtenidas");
-    log("🔐 AccessKeyId: " + AWS.config.credentials.accessKeyId.substring(0, 10) + "...");
     
-    try {
-      const clientId = "web-client-" + Math.floor(Math.random() * 100000);
-      log("📱 ClientId: " + clientId);
+    const clientId = "web-client-" + Math.floor(Math.random() * 100000);
+    log("📱 ClientId: " + clientId);
+    
+    // Crear URL firmada para WebSocket
+    const url = createPresignedUrl(
+      cfg.iotEndpoint,
+      cfg.region,
+      AWS.config.credentials.accessKeyId,
+      AWS.config.credentials.secretAccessKey,
+      AWS.config.credentials.sessionToken
+    );
+    
+    log("⏳ Conectando via WebSocket...");
+    
+    client = mqtt.connect(url, {
+      clientId: clientId,
+      transformWsUrl: () => url,
+      keepalive: 30,
+      connectTimeout: 30000
+    });
+    
+    client.on("connect", () => {
+      log("🚀 ¡CONECTADO A AWS IOT CORE!");
+      log("📡 Suscribiéndose a 'test/topic'...");
       
-      client = awsIot.device({
-        region: cfg.region,
-        host: cfg.iotEndpoint,
-        protocol: "wss",
-        clientId: clientId,
-        accessKeyId: AWS.config.credentials.accessKeyId,
-        secretKey: AWS.config.credentials.secretAccessKey,
-        sessionToken: AWS.config.credentials.sessionToken,
-        debug: true
+      client.subscribe("test/topic", (err) => {
+        if (err) {
+          log("❌ Error al suscribirse: " + err.message);
+        } else {
+          log("✅ Suscrito a 'test/topic'");
+          document.getElementById("btnPublicar").disabled = false;
+        }
       });
-      
-      log("⏳ Conectando a " + cfg.iotEndpoint + "...");
-      
-      client.on("connect", () => {
-        log("🚀 ¡CONECTADO A AWS IOT CORE!");
-        log("📡 Suscribiéndose al topic 'test/topic'...");
-        
-        client.subscribe("test/topic", (err) => {
-          if (err) {
-            log("❌ Error al suscribirse: " + err.message);
-          } else {
-            log("✅ Suscrito a 'test/topic'");
-            document.getElementById("btnPublicar").disabled = false;
-          }
-        });
-      });
-      
-      client.on("message", (topic, payload) => {
-        log("📨 Mensaje recibido en '" + topic + "': " + payload.toString());
-      });
-      
-      client.on("error", (error) => {
-        log("❌ Error de IoT: " + error.message);
-        console.error("Error completo:", error);
-      });
-      
-      client.on("close", () => {
-        log("🔌 Conexión cerrada");
-        document.getElementById("btnPublicar").disabled = true;
-      });
-      
-      client.on("offline", () => {
-        log("📵 Cliente offline");
-      });
-      
-      client.on("reconnect", () => {
-        log("🔄 Reconectando...");
-      });
-      
-    } catch (error) {
-      log("❌ Error creando cliente: " + error.message);
-      console.error("Error completo:", error);
-    }
+    });
+    
+    client.on("message", (topic, message) => {
+      log("📨 Mensaje en '" + topic + "': " + message.toString());
+    });
+    
+    client.on("error", (error) => {
+      log("❌ Error: " + error.message);
+    });
+    
+    client.on("close", () => {
+      log("🔌 Conexión cerrada");
+      document.getElementById("btnPublicar").disabled = true;
+    });
+    
+    client.on("offline", () => {
+      log("📵 Cliente offline");
+    });
   });
 }
 
 function publicar() {
-  if (!client) {
+  if (!client || !client.connected) {
     log("❌ No hay conexión activa");
     return;
   }
   
-  const mensaje = {
+  const mensaje = JSON.stringify({
     timestamp: new Date().toISOString(),
-    mensaje: "Hola desde el navegador",
+    mensaje: "Hola desde MQTT.js",
     random: Math.random()
-  };
+  });
   
   log("📤 Publicando mensaje...");
-  client.publish("test/topic", JSON.stringify(mensaje), (err) => {
+  client.publish("test/topic", mensaje, (err) => {
     if (err) {
       log("❌ Error publicando: " + err.message);
     } else {
       log("✅ Mensaje publicado");
     }
   });
+}
+
+// Función para crear URL firmada (SigV4)
+function createPresignedUrl(endpoint, region, accessKey, secretKey, sessionToken) {
+  const datetime = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const date = datetime.substr(0, 8);
+  
+  const method = 'GET';
+  const protocol = 'wss';
+  const uri = '/mqtt';
+  const service = 'iotdevicegateway';
+  const algorithm = 'AWS4-HMAC-SHA256';
+  
+  const credentialScope = date + '/' + region + '/' + service + '/' + 'aws4_request';
+  const canonicalQuerystring = 'X-Amz-Algorithm=' + algorithm +
+    '&X-Amz-Credential=' + encodeURIComponent(accessKey + '/' + credentialScope) +
+    '&X-Amz-Date=' + datetime +
+    '&X-Amz-SignedHeaders=host';
+  
+  const canonicalHeaders = 'host:' + endpoint + '\n';
+  const payloadHash = sha256('');
+  const canonicalRequest = method + '\n' + uri + '\n' + canonicalQuerystring + '\n' + 
+    canonicalHeaders + '\nhost\n' + payloadHash;
+  
+  const stringToSign = algorithm + '\n' + datetime + '\n' + credentialScope + '\n' + 
+    sha256(canonicalRequest);
+  
+  const signingKey = getSignatureKey(secretKey, date, region, service);
+  const signature = hmac(signingKey, stringToSign);
+  
+  let finalParams = canonicalQuerystring + '&X-Amz-Signature=' + signature;
+  if (sessionToken) {
+    finalParams += '&X-Amz-Security-Token=' + encodeURIComponent(sessionToken);
+  }
+  
+  return protocol + '://' + endpoint + uri + '?' + finalParams;
+}
+
+// Funciones auxiliares para firma AWS
+function sha256(data) {
+  return AWS.util.crypto.sha256(data, 'hex');
+}
+
+function hmac(key, data) {
+  return AWS.util.crypto.hmac(key, data, 'hex');
+}
+
+function getSignatureKey(key, dateStamp, regionName, serviceName) {
+  const kDate = AWS.util.crypto.hmac('AWS4' + key, dateStamp);
+  const kRegion = AWS.util.crypto.hmac(kDate, regionName);
+  const kService = AWS.util.crypto.hmac(kRegion, serviceName);
+  const kSigning = AWS.util.crypto.hmac(kService, 'aws4_request');
+  return kSigning;
 }
 </script>
 
