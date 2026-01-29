@@ -11,6 +11,7 @@
 <h2>Comunicación con AWS IoT</h2>
 <button onclick="conectar()">Conectar</button>
 <button onclick="publicar()" id="btnPublicar" disabled>Enviar Mensaje</button>
+<button onclick="verificarPermisos()">Verificar Permisos</button>
 <button onclick="limpiar()">Limpiar</button>
 <pre id="log"></pre>
 
@@ -38,6 +39,39 @@ AWS.config.credentials = new AWS.CognitoIdentityCredentials({
   IdentityPoolId: cfg.identityPoolId
 });
 
+function verificarPermisos() {
+  log("🔍 Verificando permisos...");
+  
+  AWS.config.credentials.get((err) => {
+    if (err) {
+      log("❌ Error: " + err.message);
+      return;
+    }
+    
+    const sts = new AWS.STS();
+    sts.getCallerIdentity({}, (err, data) => {
+      if (err) {
+        log("❌ STS error: " + err.message);
+      } else {
+        log("✅ Identity ARN: " + data.Arn);
+        log("✅ Account: " + data.Account);
+        log("✅ UserId: " + data.UserId);
+      }
+    });
+    
+    // Intentar describir endpoint IoT
+    const iot = new AWS.Iot();
+    iot.describeEndpoint({ endpointType: 'iot:Data-ATS' }, (err, data) => {
+      if (err) {
+        log("⚠️ No se puede describir IoT endpoint: " + err.code);
+        log("   (Esto es normal - no afecta la conexión MQTT)");
+      } else {
+        log("✅ IoT Endpoint: " + data.endpointAddress);
+      }
+    });
+  });
+}
+
 function conectar() {
   log("🔄 Obteniendo credenciales...");
   
@@ -50,21 +84,10 @@ function conectar() {
     log("✅ Credenciales OK");
     log("🔐 AccessKey: " + AWS.config.credentials.accessKeyId.substring(0, 10) + "...");
     
-    // Verificar identidad (para debug)
-    const sts = new AWS.STS();
-    sts.getCallerIdentity({}, (err, data) => {
-      if (err) {
-        log("⚠️ STS error: " + err.message);
-      } else {
-        log("👤 Identity ARN: " + data.Arn);
-      }
-    });
-    
     const clientId = "web-" + Math.floor(Math.random() * 100000);
     log("📱 ClientId: " + clientId);
     
     const url = crearUrlFirmada();
-    log("🔗 URL generada (primeros 100 chars): " + url.substring(0, 100) + "...");
     
     log("⏳ Conectando a AWS IoT...");
     
@@ -72,11 +95,21 @@ function conectar() {
       clientId: clientId,
       keepalive: 30,
       connectTimeout: 30000,
-      reconnectPeriod: 0 // No reconectar automáticamente
+      reconnectPeriod: 0,
+      protocolVersion: 4
     });
     
+    let connectTimeout = setTimeout(() => {
+      log("⏰ Timeout de conexión (30s). Posibles causas:");
+      log("   1. Trust Policy del rol IAM no permite acceso");
+      log("   2. Endpoint IoT incorrecto");
+      log("   3. Firewall bloqueando WebSocket");
+    }, 30000);
+    
     client.on("connect", () => {
+      clearTimeout(connectTimeout);
       log("🚀 ¡CONECTADO A AWS IOT!");
+      
       client.subscribe("test/topic", (err) => {
         if (err) {
           log("❌ Error suscripción: " + err.message);
@@ -92,7 +125,9 @@ function conectar() {
     });
     
     client.on("error", (error) => {
+      clearTimeout(connectTimeout);
       log("❌ Error MQTT: " + error.message);
+      log("💡 Verifica la Trust Policy del rol IAM");
       console.error("Error completo:", error);
     });
     
@@ -123,7 +158,7 @@ function publicar() {
     if (err) {
       log("❌ Error publicando: " + err.message);
     } else {
-      log("✅ Mensaje publicado");
+      log("✅ Mensaje publicado: " + mensaje.texto);
     }
   });
 }
@@ -197,7 +232,7 @@ function crearUrlFirmada() {
     color: #00ff00;
     padding: 15px;
     border-radius: 5px;
-    height: 400px;
+    height: 450px;
     overflow-y: auto;
     font-family: 'Courier New', monospace;
     font-size: 13px;
