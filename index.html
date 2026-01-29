@@ -2,33 +2,135 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Obtener Cognito Identity ID</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AWS IoT Comunicación</title>
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1370.0.min.js"></script>
+  <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 </head>
 <body>
-<h2>Obtener Identity ID</h2>
-<button onclick="obtenerID()">Obtener ID</button>
-<pre id="resultado"></pre>
+<h2>Comunicación con AWS IoT</h2>
+<button onclick="conectar()">Conectar</button>
+<button onclick="publicar()" id="btnPublicar" disabled>Enviar Mensaje</button>
+<button onclick="limpiar()">Limpiar</button>
+<pre id="log"></pre>
 
 <script>
-AWS.config.region = "us-east-1";
+let client = null;
+
+const log = (m) => {
+  const time = new Date().toLocaleTimeString();
+  document.getElementById("log").textContent += `[${time}] ${m}\n`;
+};
+
+function limpiar() {
+  document.getElementById("log").textContent = "";
+}
+
+const cfg = {
+  region: "us-east-1",
+  identityPoolId: "us-east-1:7860e2f2-eb64-4494-9c2a-fe735c8912ec",
+  iotEndpoint: "a1eyoxsww0xvbl-ats.iot.us-east-1.amazonaws.com"
+};
+
+AWS.config.region = cfg.region;
 AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-  IdentityPoolId: "us-east-1:7860e2f2-eb64-4494-9c2a-fe735c8912ec"
+  IdentityPoolId: cfg.identityPoolId
 });
 
-function obtenerID() {
+function conectar() {
+  log("🔄 Conectando...");
+  
   AWS.config.credentials.get((err) => {
     if (err) {
-      document.getElementById("resultado").textContent = "Error: " + err;
+      log("❌ Error: " + err.message);
       return;
     }
     
-    const identityId = AWS.config.credentials.identityId;
-    document.getElementById("resultado").textContent = 
-      "Tu Cognito Identity ID es:\n\n" + identityId + 
-      "\n\nCopia este ID y úsalo en el siguiente paso.";
+    log("✅ Credenciales OK");
+    log("🆔 Identity: " + AWS.config.credentials.identityId);
+    
+    const clientId = "web-" + Math.floor(Math.random() * 100000);
+    const url = crearUrlFirmada();
+    
+    log("⏳ Conectando...");
+    
+    client = mqtt.connect(url, {
+      clientId: clientId,
+      keepalive: 30,
+      connectTimeout: 30000,
+      reconnectPeriod: 0
+    });
+    
+    client.on("connect", () => {
+      log("🚀 ¡CONECTADO!");
+      client.subscribe("test/topic");
+      document.getElementById("btnPublicar").disabled = false;
+    });
+    
+    client.on("message", (topic, message) => {
+      log("📨 " + message.toString());
+    });
+    
+    client.on("error", (error) => {
+      log("❌ Error: " + error.message);
+    });
   });
 }
+
+function publicar() {
+  if (!client) return;
+  
+  const mensaje = {
+    texto: "Hola desde la web",
+    timestamp: new Date().toISOString()
+  };
+  
+  client.publish("test/topic", JSON.stringify(mensaje));
+  log("✅ Enviado");
+}
+
+function crearUrlFirmada() {
+  const datetime = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const date = datetime.substr(0, 8);
+  
+  const credentialScope = date + '/' + cfg.region + '/iotdevicegateway/aws4_request';
+  const canonicalQuerystring = 
+    'X-Amz-Algorithm=AWS4-HMAC-SHA256' +
+    '&X-Amz-Credential=' + encodeURIComponent(AWS.config.credentials.accessKeyId + '/' + credentialScope) +
+    '&X-Amz-Date=' + datetime +
+    '&X-Amz-SignedHeaders=host';
+  
+  const canonicalHeaders = 'host:' + cfg.iotEndpoint + '\n';
+  const payloadHash = AWS.util.crypto.sha256('', 'hex');
+  const canonicalRequest = 'GET\n/mqtt\n' + canonicalQuerystring + '\n' + 
+    canonicalHeaders + '\nhost\n' + payloadHash;
+  
+  const stringToSign = 'AWS4-HMAC-SHA256\n' + datetime + '\n' + credentialScope + '\n' + 
+    AWS.util.crypto.sha256(canonicalRequest, 'hex');
+  
+  const kDate = AWS.util.crypto.hmac('AWS4' + AWS.config.credentials.secretAccessKey, date);
+  const kRegion = AWS.util.crypto.hmac(kDate, cfg.region);
+  const kService = AWS.util.crypto.hmac(kRegion, 'iotdevicegateway');
+  const kSigning = AWS.util.crypto.hmac(kService, 'aws4_request');
+  const signature = AWS.util.crypto.hmac(kSigning, stringToSign, 'hex');
+  
+  let url = 'wss://' + cfg.iotEndpoint + '/mqtt?' + canonicalQuerystring + 
+    '&X-Amz-Signature=' + signature;
+  
+  if (AWS.config.credentials.sessionToken) {
+    url += '&X-Amz-Security-Token=' + encodeURIComponent(AWS.config.credentials.sessionToken);
+  }
+  
+  return url;
+}
 </script>
+
+<style>
+  body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+  button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+  button:hover { background: #0056b3; }
+  button:disabled { opacity: 0.5; background: #6c757d; }
+  #log { background: #000; color: #0f0; padding: 15px; border-radius: 5px; height: 400px; overflow-y: auto; font-family: monospace; margin-top: 20px; }
+</style>
 </body>
 </html>
