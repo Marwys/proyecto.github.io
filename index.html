@@ -2,248 +2,34 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Control ESP32 - AWS IoT</title>
+  <title>Verificar Identity ID</title>
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1370.0.min.js"></script>
-  <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 </head>
 <body>
-<h2>🎛️ Control ESP32 via AWS IoT</h2>
-<div class="controls">
-  <button onclick="conectar()">Conectar</button>
-  <button onclick="enviarComando('LED_ON')" id="btnLedOn" disabled>LED ON</button>
-  <button onclick="enviarComando('LED_OFF')" id="btnLedOff" disabled>LED OFF</button>
-  <button onclick="limpiar()">Limpiar Log</button>
-</div>
-<pre id="log"></pre>
+<h2>Verificar Identity ID</h2>
+<button onclick="verificar()">Verificar</button>
+<pre id="resultado"></pre>
 
 <script>
-let client = null;
-
-const TOPICS = {
-  ESP32_PUB: 'esp32/pub',    // El ESP32 publica aquí (la web escucha)
-  ESP32_SUB: 'esp32/sub'     // El ESP32 escucha aquí (la web publica)
-};
-
-const log = (m) => {
-  const time = new Date().toLocaleTimeString();
-  document.getElementById("log").textContent += `[${time}] ${m}\n`;
-  document.getElementById("log").scrollTop = document.getElementById("log").scrollHeight;
-};
-
-function limpiar() {
-  document.getElementById("log").textContent = "";
-}
-
-const cfg = {
-  region: "us-east-1",
-  identityPoolId: "us-east-1:7860e2f2-eb64-4494-9c2a-fe735c8912ec",
-  iotEndpoint: "a1eyoxsww0xvbl-ats.iot.us-east-1.amazonaws.com"
-};
-
-AWS.config.region = cfg.region;
+AWS.config.region = "us-east-1";
 AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-  IdentityPoolId: cfg.identityPoolId
+  IdentityPoolId: "us-east-1:7860e2f2-eb64-4494-9c2a-fe735c8912ec"
 });
 
-function conectar() {
-  log("🔄 Conectando...");
-  
+function verificar() {
   AWS.config.credentials.get((err) => {
     if (err) {
-      log("❌ Error: " + err.message);
+      document.getElementById("resultado").textContent = "Error: " + err;
       return;
     }
     
-    log("✅ Credenciales OK");
-    
-    const clientId = "web-" + Math.floor(Math.random() * 100000);
-    const url = crearUrlFirmada();
-    
-    log("⏳ Conectando a AWS IoT...");
-    
-    client = mqtt.connect(url, {
-      clientId: clientId,
-      keepalive: 30,
-      connectTimeout: 30000,
-      reconnectPeriod: 1000
-    });
-    
-    client.on("connect", () => {
-      log("🎉 ¡CONECTADO!");
-      log("📡 Suscribiéndose a: " + TOPICS.ESP32_PUB);
-      
-      // Suscribirse al topic donde el ESP32 publica
-      client.subscribe(TOPICS.ESP32_PUB, { qos: 0 }, (err) => {
-        if (err) {
-          log("❌ Error suscripción: " + err.message);
-        } else {
-          log("✅ Escuchando mensajes del ESP32");
-          document.getElementById("btnLedOn").disabled = false;
-          document.getElementById("btnLedOff").disabled = false;
-        }
-      });
-    });
-    
-    client.on("message", (topic, message) => {
-      log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      log("📨 MENSAJE DEL ESP32:");
-      log("   Topic: " + topic);
-      try {
-        const data = JSON.parse(message.toString());
-        log("   Datos: " + JSON.stringify(data, null, 2));
-      } catch (e) {
-        log("   Datos: " + message.toString());
-      }
-      log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    });
-    
-    client.on("error", (error) => {
-      log("❌ Error: " + error.message);
-    });
-    
-    client.on("close", () => {
-      log("🔌 Desconectado");
-      document.getElementById("btnLedOn").disabled = true;
-      document.getElementById("btnLedOff").disabled = true;
-    });
-    
-    client.on("reconnect", () => {
-      log("🔄 Reconectando...");
-    });
+    const id = AWS.config.credentials.identityId;
+    document.getElementById("resultado").textContent = 
+      "Identity ID actual:\n" + id + 
+      "\n\nSi es diferente a:\nus-east-1:a051ce91-467f-c233-8c24-827a202cd867" +
+      "\n\nEjecuta:\naws iot attach-policy --policy-name WebClientPolicy --target \"" + id + "\" --region us-east-1";
   });
-}
-
-function enviarComando(comando) {
-  if (!client || !client.connected) {
-    log("❌ No conectado");
-    return;
-  }
-  
-  const mensaje = {
-    comando: comando,
-    timestamp: new Date().toISOString()
-  };
-  
-  log("📤 Enviando comando al ESP32: " + comando);
-  log("   Topic: " + TOPICS.ESP32_SUB);
-  
-  client.publish(TOPICS.ESP32_SUB, JSON.stringify(mensaje), { qos: 0 }, (err) => {
-    if (err) {
-      log("❌ Error: " + err.message);
-    } else {
-      log("✅ Comando enviado");
-    }
-  });
-}
-
-function crearUrlFirmada() {
-  const datetime = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
-  const date = datetime.substr(0, 8);
-  
-  const credentialScope = date + '/' + cfg.region + '/iotdevicegateway/aws4_request';
-  const canonicalQuerystring = 
-    'X-Amz-Algorithm=AWS4-HMAC-SHA256' +
-    '&X-Amz-Credential=' + encodeURIComponent(AWS.config.credentials.accessKeyId + '/' + credentialScope) +
-    '&X-Amz-Date=' + datetime +
-    '&X-Amz-SignedHeaders=host';
-  
-  const canonicalHeaders = 'host:' + cfg.iotEndpoint + '\n';
-  const payloadHash = AWS.util.crypto.sha256('', 'hex');
-  const canonicalRequest = 'GET\n/mqtt\n' + canonicalQuerystring + '\n' + 
-    canonicalHeaders + '\nhost\n' + payloadHash;
-  
-  const stringToSign = 'AWS4-HMAC-SHA256\n' + datetime + '\n' + credentialScope + '\n' + 
-    AWS.util.crypto.sha256(canonicalRequest, 'hex');
-  
-  const kDate = AWS.util.crypto.hmac('AWS4' + AWS.config.credentials.secretAccessKey, date);
-  const kRegion = AWS.util.crypto.hmac(kDate, cfg.region);
-  const kService = AWS.util.crypto.hmac(kRegion, 'iotdevicegateway');
-  const kSigning = AWS.util.crypto.hmac(kService, 'aws4_request');
-  const signature = AWS.util.crypto.hmac(kSigning, stringToSign, 'hex');
-  
-  let url = 'wss://' + cfg.iotEndpoint + '/mqtt?' + canonicalQuerystring + 
-    '&X-Amz-Signature=' + signature;
-  
-  if (AWS.config.credentials.sessionToken) {
-    url += '&X-Amz-Security-Token=' + encodeURIComponent(AWS.config.credentials.sessionToken);
-  }
-  
-  return url;
 }
 </script>
-
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    padding: 30px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  h2 {
-    color: white;
-    text-align: center;
-    margin-bottom: 20px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    font-size: 28px;
-  }
-  
-  .controls {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-    margin-bottom: 20px;
-  }
-  
-  button {
-    padding: 12px 28px;
-    margin: 5px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
-  }
-  
-  button:nth-child(1) { background: linear-gradient(135deg, #667eea, #764ba2); }
-  button:nth-child(2) { background: linear-gradient(135deg, #11998e, #38ef7d); }
-  button:nth-child(3) { background: linear-gradient(135deg, #ee0979, #ff6a00); }
-  button:nth-child(4) { background: linear-gradient(135deg, #000, #434343); }
-  
-  button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-  }
-  
-  button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-  
-  #log {
-    background: #1a1a2e;
-    color: #00ff41;
-    padding: 20px;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 900px;
-    height: 500px;
-    overflow-y: auto;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    white-space: pre-wrap;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.4);
-  }
-</style>
 </body>
 </html>
