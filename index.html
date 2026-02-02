@@ -3,21 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AWS IoT - Conexión Exitosa</title>
+  <title>Control ESP32 - AWS IoT</title>
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1370.0.min.js"></script>
   <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 </head>
 <body>
-<h2>🚀 AWS IoT Core - Comunicación Web</h2>
+<h2>🎛️ Control ESP32 via AWS IoT</h2>
 <div class="controls">
   <button onclick="conectar()">Conectar</button>
-  <button onclick="publicar()" id="btnPublicar" disabled>Enviar Mensaje</button>
+  <button onclick="enviarComando('LED_ON')" id="btnLedOn" disabled>LED ON</button>
+  <button onclick="enviarComando('LED_OFF')" id="btnLedOff" disabled>LED OFF</button>
   <button onclick="limpiar()">Limpiar Log</button>
 </div>
 <pre id="log"></pre>
 
 <script>
 let client = null;
+
+const TOPICS = {
+  ESP32_PUB: 'esp32/pub',    // El ESP32 publica aquí (la web escucha)
+  ESP32_SUB: 'esp32/sub'     // El ESP32 escucha aquí (la web publica)
+};
 
 const log = (m) => {
   const time = new Date().toLocaleTimeString();
@@ -41,64 +47,65 @@ AWS.config.credentials = new AWS.CognitoIdentityCredentials({
 });
 
 function conectar() {
-  log("🔄 Iniciando conexión...");
+  log("🔄 Conectando...");
   
   AWS.config.credentials.get((err) => {
     if (err) {
-      log("❌ Error obteniendo credenciales: " + err.message);
+      log("❌ Error: " + err.message);
       return;
     }
     
-    log("✅ Credenciales obtenidas");
-    log("🆔 Identity ID: " + AWS.config.credentials.identityId);
+    log("✅ Credenciales OK");
     
-    const clientId = "web-client-" + Math.floor(Math.random() * 100000);
-    log("📱 Client ID: " + clientId);
-    
+    const clientId = "web-" + Math.floor(Math.random() * 100000);
     const url = crearUrlFirmada();
-    log("⏳ Conectando a AWS IoT Core...");
+    
+    log("⏳ Conectando a AWS IoT...");
     
     client = mqtt.connect(url, {
       clientId: clientId,
       keepalive: 30,
       connectTimeout: 30000,
-      reconnectPeriod: 1000,
-      clean: true
+      reconnectPeriod: 1000
     });
     
     client.on("connect", () => {
-      log("🎉 ¡CONECTADO EXITOSAMENTE A AWS IOT CORE!");
-      log("📡 Suscribiéndose al topic 'test/topic'...");
+      log("🎉 ¡CONECTADO!");
+      log("📡 Suscribiéndose a: " + TOPICS.ESP32_PUB);
       
-      client.subscribe("test/topic", { qos: 0 }, (err) => {
+      // Suscribirse al topic donde el ESP32 publica
+      client.subscribe(TOPICS.ESP32_PUB, { qos: 0 }, (err) => {
         if (err) {
-          log("❌ Error al suscribirse: " + err.message);
+          log("❌ Error suscripción: " + err.message);
         } else {
-          log("✅ Suscrito correctamente al topic 'test/topic'");
-          document.getElementById("btnPublicar").disabled = false;
+          log("✅ Escuchando mensajes del ESP32");
+          document.getElementById("btnLedOn").disabled = false;
+          document.getElementById("btnLedOff").disabled = false;
         }
       });
     });
     
     client.on("message", (topic, message) => {
       log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      log("📨 MENSAJE RECIBIDO");
+      log("📨 MENSAJE DEL ESP32:");
       log("   Topic: " + topic);
-      log("   Payload: " + message.toString());
+      try {
+        const data = JSON.parse(message.toString());
+        log("   Datos: " + JSON.stringify(data, null, 2));
+      } catch (e) {
+        log("   Datos: " + message.toString());
+      }
       log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     });
     
     client.on("error", (error) => {
-      log("❌ Error MQTT: " + error.message);
+      log("❌ Error: " + error.message);
     });
     
     client.on("close", () => {
-      log("🔌 Conexión cerrada");
-      document.getElementById("btnPublicar").disabled = true;
-    });
-    
-    client.on("offline", () => {
-      log("📵 Cliente offline - Reintentando...");
+      log("🔌 Desconectado");
+      document.getElementById("btnLedOn").disabled = true;
+      document.getElementById("btnLedOff").disabled = true;
     });
     
     client.on("reconnect", () => {
@@ -107,24 +114,25 @@ function conectar() {
   });
 }
 
-function publicar() {
+function enviarComando(comando) {
   if (!client || !client.connected) {
-    log("❌ No hay conexión activa");
+    log("❌ No conectado");
     return;
   }
   
   const mensaje = {
-    mensaje: "¡Hola desde la página web!",
-    timestamp: new Date().toISOString(),
-    aleatorio: Math.floor(Math.random() * 1000)
+    comando: comando,
+    timestamp: new Date().toISOString()
   };
   
-  log("📤 Publicando mensaje...");
-  client.publish("test/topic", JSON.stringify(mensaje, null, 2), { qos: 0 }, (err) => {
+  log("📤 Enviando comando al ESP32: " + comando);
+  log("   Topic: " + TOPICS.ESP32_SUB);
+  
+  client.publish(TOPICS.ESP32_SUB, JSON.stringify(mensaje), { qos: 0 }, (err) => {
     if (err) {
-      log("❌ Error al publicar: " + err.message);
+      log("❌ Error: " + err.message);
     } else {
-      log("✅ Mensaje publicado exitosamente");
+      log("✅ Comando enviado");
     }
   });
 }
@@ -166,14 +174,10 @@ function crearUrlFirmada() {
 </script>
 
 <style>
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   
   body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Segoe UI', sans-serif;
     padding: 30px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
@@ -196,7 +200,6 @@ function crearUrlFirmada() {
     border-radius: 12px;
     box-shadow: 0 8px 16px rgba(0,0,0,0.2);
     margin-bottom: 20px;
-    text-align: center;
   }
   
   button {
@@ -205,7 +208,6 @@ function crearUrlFirmada() {
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
-    background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     border: none;
     border-radius: 8px;
@@ -213,19 +215,19 @@ function crearUrlFirmada() {
     transition: all 0.3s ease;
   }
   
+  button:nth-child(1) { background: linear-gradient(135deg, #667eea, #764ba2); }
+  button:nth-child(2) { background: linear-gradient(135deg, #11998e, #38ef7d); }
+  button:nth-child(3) { background: linear-gradient(135deg, #ee0979, #ff6a00); }
+  button:nth-child(4) { background: linear-gradient(135deg, #000, #434343); }
+  
   button:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.3);
   }
   
-  button:active:not(:disabled) {
-    transform: translateY(0);
-  }
-  
   button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background: #999;
   }
   
   #log {
@@ -241,21 +243,6 @@ function crearUrlFirmada() {
     font-size: 14px;
     white-space: pre-wrap;
     box-shadow: 0 8px 16px rgba(0,0,0,0.4);
-    line-height: 1.5;
-  }
-  
-  #log::-webkit-scrollbar {
-    width: 10px;
-  }
-  
-  #log::-webkit-scrollbar-track {
-    background: #0f0f1e;
-    border-radius: 10px;
-  }
-  
-  #log::-webkit-scrollbar-thumb {
-    background: #00ff41;
-    border-radius: 10px;
   }
 </style>
 </body>
