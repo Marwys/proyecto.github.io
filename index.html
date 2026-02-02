@@ -2,206 +2,84 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AWS IoT Comunicación</title>
+  <title>AWS IoT - Diagnóstico</title>
   <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1370.0.min.js"></script>
-  <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 </head>
 <body>
-<h2>AWS IoT - Comunicación Web</h2>
-<button onclick="conectar()">Conectar</button>
-<button onclick="publicar()" id="btnPublicar" disabled>Enviar Mensaje</button>
-<button onclick="limpiar()">Limpiar</button>
+<h2>Diagnóstico de políticas IoT</h2>
+<button onclick="verificar()">Verificar Configuración</button>
 <pre id="log"></pre>
 
 <script>
-let client = null;
-
 const log = (m) => {
-  const time = new Date().toLocaleTimeString();
-  document.getElementById("log").textContent += `[${time}] ${m}\n`;
+  document.getElementById("log").textContent += m + "\n";
   console.log(m);
 };
 
-function limpiar() {
-  document.getElementById("log").textContent = "";
-}
-
-const cfg = {
-  region: "us-east-1",
-  identityPoolId: "us-east-1:7860e2f2-eb64-4494-9c2a-fe735c8912ec",
-  iotEndpoint: "a1eyoxsww0xvbl-ats.iot.us-east-1.amazonaws.com"
-};
-
-AWS.config.region = cfg.region;
+AWS.config.region = "us-east-1";
 AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-  IdentityPoolId: cfg.identityPoolId
+  IdentityPoolId: "us-east-1:7860e2f2-eb64-4494-9c2a-fe735c8912ec"
 });
 
-function conectar() {
-  log("🔄 Obteniendo credenciales...");
+function verificar() {
+  log("🔍 Verificando configuración...\n");
   
   AWS.config.credentials.get((err) => {
     if (err) {
-      log("❌ Error Cognito: " + err.message);
+      log("❌ Error: " + err.message);
       return;
     }
     
-    log("✅ Credenciales OK");
-    log("🆔 Identity ID: " + AWS.config.credentials.identityId);
+    log("✅ Identity ID: " + AWS.config.credentials.identityId);
+    log("✅ AccessKeyId: " + AWS.config.credentials.accessKeyId);
+    log("");
     
-    const clientId = "web-" + Math.floor(Math.random() * 100000);
-    log("📱 Client ID: " + clientId);
+    // Verificar políticas adjuntas
+    const iot = new AWS.Iot();
     
-    const url = crearUrlFirmada();
-    
-    log("⏳ Conectando a AWS IoT Core...");
-    
-    client = mqtt.connect(url, {
-      clientId: clientId,
-      keepalive: 30,
-      connectTimeout: 30000,
-      reconnectPeriod: 0,
-      protocolVersion: 4
-    });
-    
-    client.on("connect", () => {
-      log("🚀 ¡CONECTADO A AWS IOT CORE!");
+    // Listar todas las políticas
+    iot.listPolicies({}, (err, data) => {
+      if (err) {
+        log("⚠️ No se pueden listar políticas: " + err.code);
+        log("   (Esto es normal si el rol no tiene permiso iot:ListPolicies)");
+      } else {
+        log("📋 Políticas IoT disponibles:");
+        data.policies.forEach(p => {
+          log("   - " + p.policyName);
+        });
+      }
+      log("");
       
-      client.subscribe("test/topic", (err) => {
+      // Intentar listar targets de la política
+      iot.listTargetsForPolicy({ policyName: 'WebClientPolicy' }, (err, data) => {
         if (err) {
-          log("❌ Error suscripción: " + err.message);
+          log("❌ Error listando targets: " + err.code);
+          log("   Asegúrate que la política 'WebClientPolicy' existe");
         } else {
-          log("✅ Suscrito a topic: test/topic");
-          document.getElementById("btnPublicar").disabled = false;
+          log("🎯 Targets de WebClientPolicy:");
+          if (data.targets && data.targets.length > 0) {
+            data.targets.forEach(t => {
+              log("   - " + t);
+              if (t === AWS.config.credentials.identityId) {
+                log("     ✅ Tu Identity ID está adjuntado!");
+              }
+            });
+          } else {
+            log("   ⚠️ No hay targets adjuntados a esta política");
+            log("   ❗ DEBES adjuntar tu Identity ID:");
+            log("   " + AWS.config.credentials.identityId);
+          }
         }
       });
     });
-    
-    client.on("message", (topic, message) => {
-      log("📨 Mensaje recibido:");
-      log("   Topic: " + topic);
-      log("   Payload: " + message.toString());
-    });
-    
-    client.on("error", (error) => {
-      log("❌ Error MQTT: " + error.message);
-      console.error("Error completo:", error);
-    });
-    
-    client.on("close", () => {
-      log("🔌 Conexión cerrada");
-      document.getElementById("btnPublicar").disabled = true;
-    });
-    
-    client.on("offline", () => {
-      log("📵 Cliente offline");
-    });
   });
-}
-
-function publicar() {
-  if (!client || !client.connected) {
-    log("❌ No hay conexión activa");
-    return;
-  }
-  
-  const mensaje = {
-    texto: "Hola desde la web",
-    timestamp: new Date().toISOString(),
-    random: Math.random().toFixed(4)
-  };
-  
-  log("📤 Publicando mensaje...");
-  client.publish("test/topic", JSON.stringify(mensaje, null, 2), (err) => {
-    if (err) {
-      log("❌ Error publicando: " + err.message);
-    } else {
-      log("✅ Mensaje publicado exitosamente");
-    }
-  });
-}
-
-function crearUrlFirmada() {
-  const datetime = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
-  const date = datetime.substr(0, 8);
-  
-  const credentialScope = date + '/' + cfg.region + '/iotdevicegateway/aws4_request';
-  const canonicalQuerystring = 
-    'X-Amz-Algorithm=AWS4-HMAC-SHA256' +
-    '&X-Amz-Credential=' + encodeURIComponent(AWS.config.credentials.accessKeyId + '/' + credentialScope) +
-    '&X-Amz-Date=' + datetime +
-    '&X-Amz-SignedHeaders=host';
-  
-  const canonicalHeaders = 'host:' + cfg.iotEndpoint + '\n';
-  const payloadHash = AWS.util.crypto.sha256('', 'hex');
-  const canonicalRequest = 'GET\n/mqtt\n' + canonicalQuerystring + '\n' + 
-    canonicalHeaders + '\nhost\n' + payloadHash;
-  
-  const stringToSign = 'AWS4-HMAC-SHA256\n' + datetime + '\n' + credentialScope + '\n' + 
-    AWS.util.crypto.sha256(canonicalRequest, 'hex');
-  
-  const kDate = AWS.util.crypto.hmac('AWS4' + AWS.config.credentials.secretAccessKey, date);
-  const kRegion = AWS.util.crypto.hmac(kDate, cfg.region);
-  const kService = AWS.util.crypto.hmac(kRegion, 'iotdevicegateway');
-  const kSigning = AWS.util.crypto.hmac(kService, 'aws4_request');
-  const signature = AWS.util.crypto.hmac(kSigning, stringToSign, 'hex');
-  
-  let url = 'wss://' + cfg.iotEndpoint + '/mqtt?' + canonicalQuerystring + 
-    '&X-Amz-Signature=' + signature;
-  
-  if (AWS.config.credentials.sessionToken) {
-    url += '&X-Amz-Security-Token=' + encodeURIComponent(AWS.config.credentials.sessionToken);
-  }
-  
-  return url;
 }
 </script>
 
 <style>
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding: 20px;
-    max-width: 900px;
-    margin: 0 auto;
-    background: #f5f5f5;
-  }
-  h2 {
-    color: #333;
-    text-align: center;
-  }
-  button {
-    padding: 12px 24px;
-    margin: 5px;
-    font-size: 14px;
-    cursor: pointer;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    transition: background 0.3s;
-  }
-  button:hover {
-    background: #0056b3;
-  }
-  button:disabled {
-    opacity: 0.5;
-    background: #6c757d;
-    cursor: not-allowed;
-  }
-  #log {
-    background: #1e1e1e;
-    color: #00ff00;
-    padding: 20px;
-    border-radius: 8px;
-    height: 450px;
-    overflow-y: auto;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    margin-top: 20px;
-    white-space: pre-wrap;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  }
+  body { font-family: Arial; padding: 20px; max-width: 900px; margin: 0 auto; }
+  button { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+  #log { background: #1e1e1e; color: #0f0; padding: 20px; border-radius: 5px; height: 500px; overflow-y: auto; font-family: monospace; margin-top: 20px; white-space: pre-wrap; }
 </style>
 </body>
 </html>
