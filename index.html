@@ -1,152 +1,95 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Control ESP32 · AWS IoT</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Control ESP32 – Ranuras</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 
 <body>
-  <h2>🎛️ Control remoto ESP32</h2>
+<h2>🔋 Control de Ranuras ESP32</h2>
 
-  <div class="panel">
-    <button onclick="activar(1)">▶️ Activar Ranura 1</button>
-    <button onclick="activar(2)">▶️ Activar Ranura 2</button>
-    <button class="stop" onclick="detener()">⛔ Detener Todo</button>
-  </div>
+<div class="panel">
+  <h3>Ranura 1</h3>
+  <button onclick="send({ranura:1, enable:true})">▶ Activar</button>
+  <button onclick="send({ranura:1, enable:false})">⏹ Apagar</button>
+  <button onclick="send({ranura:1, lock:true})">🔒 Bloquear</button>
+  <button onclick="send({ranura:1, lock:false})">🔓 Desbloquear</button>
+</div>
 
-  <pre id="log"></pre>
+<div class="panel">
+  <h3>Ranura 2</h3>
+  <button onclick="send({ranura:2, enable:true})">▶ Activar</button>
+  <button onclick="send({ranura:2, enable:false})">⏹ Apagar</button>
+  <button onclick="send({ranura:2, lock:true})">🔒 Bloquear</button>
+  <button onclick="send({ranura:2, lock:false})">🔓 Desbloquear</button>
+</div>
+
+<div class="panel emergency">
+  <h3>🚨 Emergencia</h3>
+  <button onclick="send({emergency:true})">APAGADO TOTAL</button>
+</div>
+
+<pre id="log"></pre>
 
 <script>
-/* ==========================
-   CONFIGURACIÓN
-========================== */
-const API_URL = "https://027nr82y14.execute-api.us-east-1.amazonaws.com/iot";
+const API_URL = "https://TU_API.execute-api.us-east-1.amazonaws.com/iot";
 
-/* ==========================
-   LOG
-========================== */
 function log(msg) {
   const t = new Date().toLocaleTimeString();
-  const el = document.getElementById("log");
-  el.textContent += `[${t}] ${msg}\n`;
-  el.scrollTop = el.scrollHeight;
+  document.getElementById("log").textContent += `[${t}] ${msg}\n`;
 }
 
-/* ==========================
-   LLAMADAS API
-========================== */
-async function enviar(payload) {
-  log("📤 Enviando → " + JSON.stringify(payload));
+async function send(message) {
+  log("📤 Enviando: " + JSON.stringify(message));
 
   try {
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "publish",
+        topic: "esp32/sub",
+        message: message
+      })
     });
 
     const data = await res.json();
-
-    if (data.success) {
-      log("✅ Comando aceptado por AWS");
-    } else {
-      log("❌ Error: " + data.error);
-    }
-
-  } catch (err) {
-    log("❌ Error conexión API");
-    console.error(err);
+    data.success ? log("✅ OK") : log("❌ Error");
+  } catch (e) {
+    log("❌ " + e.message);
   }
 }
-
-/* ==========================
-   ACCIONES
-========================== */
-function activar(ranura) {
-  enviar({
-    enable: true,
-    ranura: ranura
-  });
-}
-
-function detener() {
-  enviar({
-    enable: false,
-    ranura: -1
-  });
-}
-
-/* ==========================
-   INIT
-========================== */
-window.onload = () => {
-  log("📄 Página cargada");
-  log("🔗 API: " + API_URL);
-  log("🟢 Listo para controlar ESP32");
-};
 </script>
 
 <style>
 body {
-  font-family: system-ui, sans-serif;
-  background: linear-gradient(135deg,#667eea,#764ba2);
-  min-height: 100vh;
-  padding: 30px;
+  font-family: Arial;
+  background: #111;
+  color: #eee;
+  padding: 20px;
 }
-
-h2 {
-  color: white;
-  text-align: center;
-  margin-bottom: 20px;
-}
-
 .panel {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  max-width: 500px;
-  margin: auto;
-  text-align: center;
-  box-shadow: 0 8px 16px rgba(0,0,0,.25);
-}
-
-button {
-  padding: 14px 26px;
-  margin: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  border: none;
+  background: #222;
+  padding: 15px;
+  margin-bottom: 15px;
   border-radius: 8px;
+}
+.emergency {
+  background: #5a0000;
+}
+button {
+  margin: 5px;
+  padding: 10px 16px;
+  font-size: 14px;
   cursor: pointer;
-  color: white;
-  background: #4CAF50;
-  transition: transform .2s;
 }
-
-button:hover {
-  transform: translateY(-2px);
-}
-
-button.stop {
-  background: #e53935;
-}
-
 #log {
-  margin: 25px auto;
-  max-width: 900px;
-  height: 350px;
-  padding: 20px;
-  background: #0f172a;
-  color: #00ff88;
-  font-family: monospace;
+  background: #000;
+  padding: 10px;
+  height: 200px;
   overflow-y: auto;
-  border-radius: 12px;
-  box-shadow: 0 8px 16px rgba(0,0,0,.4);
 }
 </style>
-
 </body>
 </html>
