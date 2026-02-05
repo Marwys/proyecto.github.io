@@ -2,67 +2,151 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>ESP32 Manual Input</title>
+  <title>Control ESP32 · AWS IoT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
+
 <body>
+  <h2>🎛️ Control remoto ESP32</h2>
 
-<h2>📡 Enviar datos al ESP32 (AWS IoT)</h2>
+  <div class="panel">
+    <button onclick="activar(1)">▶️ Activar Ranura 1</button>
+    <button onclick="activar(2)">▶️ Activar Ranura 2</button>
+    <button class="stop" onclick="detener()">⛔ Detener Todo</button>
+  </div>
 
-<label>Ranura</label>
-<input type="number" id="ranura" value="1"><br><br>
-
-<label>Voltaje (V)</label>
-<input type="number" step="0.01" id="voltaje" value="4.20"><br><br>
-
-<label>Corriente (A)</label>
-<input type="number" step="0.001" id="corriente" value="0.150"><br><br>
-
-<label>Temperatura (°C)</label>
-<input type="number" id="temperatura" value="30"><br><br>
-
-<button onclick="enviar()">📤 Enviar a ESP32</button>
-
-<pre id="log"></pre>
+  <pre id="log"></pre>
 
 <script>
-const API_URL = "https://027nr82y14.execute-api.us-east-1.amazonaws.com/iot";
+/* ==========================
+   CONFIGURACIÓN
+========================== */
+const API_URL = "https://TU_API.execute-api.us-east-1.amazonaws.com/prod";
 
-function log(m) {
-  document.getElementById("log").textContent += m + "\n";
+/* ==========================
+   LOG
+========================== */
+function log(msg) {
+  const t = new Date().toLocaleTimeString();
+  const el = document.getElementById("log");
+  el.textContent += `[${t}] ${msg}\n`;
+  el.scrollTop = el.scrollHeight;
 }
 
-async function enviar() {
-
-  const payload = {
-    action: "publish",
-    topic: "esp32/sub",
-    message: {
-      ranura: Number(document.getElementById("ranura").value),
-      voltaje: Number(document.getElementById("voltaje").value),
-      corriente_f: Number(document.getElementById("corriente").value),
-      temperatura: Number(document.getElementById("temperatura").value)
-    }
-  };
-
-  log("📦 Enviando:");
-  log(JSON.stringify(payload.message, null, 2));
+/* ==========================
+   LLAMADAS API
+========================== */
+async function enviar(payload) {
+  log("📤 Enviando → " + JSON.stringify(payload));
 
   try {
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify(payload)
     });
 
     const data = await res.json();
-    log("✅ Respuesta API:");
-    log(JSON.stringify(data, null, 2));
 
-  } catch (e) {
-    log("❌ Error: " + e.message);
+    if (data.success) {
+      log("✅ Comando aceptado por AWS");
+    } else {
+      log("❌ Error: " + data.error);
+    }
+
+  } catch (err) {
+    log("❌ Error conexión API");
+    console.error(err);
   }
 }
+
+/* ==========================
+   ACCIONES
+========================== */
+function activar(ranura) {
+  enviar({
+    enable: true,
+    ranura: ranura
+  });
+}
+
+function detener() {
+  enviar({
+    enable: false,
+    ranura: -1
+  });
+}
+
+/* ==========================
+   INIT
+========================== */
+window.onload = () => {
+  log("📄 Página cargada");
+  log("🔗 API: " + API_URL);
+  log("🟢 Listo para controlar ESP32");
+};
 </script>
+
+<style>
+body {
+  font-family: system-ui, sans-serif;
+  background: linear-gradient(135deg,#667eea,#764ba2);
+  min-height: 100vh;
+  padding: 30px;
+}
+
+h2 {
+  color: white;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.panel {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  max-width: 500px;
+  margin: auto;
+  text-align: center;
+  box-shadow: 0 8px 16px rgba(0,0,0,.25);
+}
+
+button {
+  padding: 14px 26px;
+  margin: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+  background: #4CAF50;
+  transition: transform .2s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+button.stop {
+  background: #e53935;
+}
+
+#log {
+  margin: 25px auto;
+  max-width: 900px;
+  height: 350px;
+  padding: 20px;
+  background: #0f172a;
+  color: #00ff88;
+  font-family: monospace;
+  overflow-y: auto;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0,0,0,.4);
+}
+</style>
 
 </body>
 </html>
