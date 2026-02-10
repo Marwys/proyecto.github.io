@@ -1,199 +1,252 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Control ESP32 · AWS IoT</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Battery Control Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --ok: #22c55e;
-      --off: #ef4444;
-      --warn: #facc15;
-      --text: #e5e7eb;
-      --muted: #94a3b8;
-    }
+<style>
+/* =========================
+   ESTILO GENERAL
+========================= */
+body {
+  margin: 0;
+  background: #0b1220;
+  color: #e5e7eb;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
 
-    * {
-      box-sizing: border-box;
-      font-family: system-ui, sans-serif;
-    }
+h1 {
+  text-align: center;
+  margin: 20px 0 5px;
+}
 
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      padding: 20px;
-    }
+.subtitle {
+  text-align: center;
+  color: #94a3b8;
+  margin-bottom: 30px;
+}
 
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
+/* =========================
+   CONTENEDOR PRINCIPAL
+========================= */
+.dashboard {
+  max-width: 1100px;
+  margin: auto;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
 
-    p.subtitle {
-      text-align: center;
-      color: var(--muted);
-      margin-bottom: 30px;
-    }
+/* =========================
+   TARJETA RANURA
+========================= */
+.card {
+  background: #111827;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.4);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-      max-width: 900px;
-      margin: auto;
-    }
+.card h2 {
+  margin: 0;
+  font-size: 1.2em;
+}
 
-    .card {
-      background: var(--card);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 10px 20px rgba(0,0,0,.3);
-    }
+/* =========================
+   INFO TÉCNICA
+========================= */
+.data {
+  font-size: 0.9em;
+  color: #cbd5f5;
+}
 
-    .card h2 {
-      margin-top: 0;
-      margin-bottom: 10px;
-    }
+.data span {
+  display: block;
+}
 
-    .status {
-      font-size: 0.9em;
-      margin-bottom: 15px;
-      color: var(--muted);
-    }
+/* =========================
+   ESTADO
+========================= */
+.status {
+  font-size: 0.85em;
+  font-weight: bold;
+}
 
-    .buttons {
-      display: flex;
-      gap: 10px;
-    }
+.status.on {
+  color: #22c55e;
+}
 
-    button {
-      flex: 1;
-      border: none;
-      padding: 10px;
-      border-radius: 10px;
-      font-size: 0.9em;
-      cursor: pointer;
-      transition: transform .1s ease, opacity .1s ease;
-    }
+.status.off {
+  color: #ef4444;
+}
 
-    button:hover {
-      transform: scale(1.03);
-      opacity: 0.9;
-    }
+/* =========================
+   BOTONES
+========================= */
+.buttons {
+  display: flex;
+  gap: 10px;
+}
 
-    .on {
-      background: var(--ok);
-      color: #052e16;
-    }
+button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform .1s ease, opacity .1s ease;
+}
 
-    .off {
-      background: var(--off);
-      color: #450a0a;
-    }
+button:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
 
-    .emergency {
-      margin: 40px auto 0;
-      display: block;
-      background: var(--warn);
-      color: #422006;
-      padding: 15px 30px;
-      font-size: 1.1em;
-      border-radius: 14px;
-      max-width: 300px;
-    }
+.btn-on {
+  background: #22c55e;
+  color: #052e16;
+}
 
-    footer {
-      text-align: center;
-      margin-top: 40px;
-      color: var(--muted);
-      font-size: 0.8em;
-    }
-  </style>
+.btn-off {
+  background: #ef4444;
+  color: #450a0a;
+}
+
+/* =========================
+   EMERGENCIA
+========================= */
+.emergency {
+  margin: 40px auto;
+  display: block;
+  padding: 16px 40px;
+  background: #facc15;
+  color: #422006;
+  font-size: 1.2em;
+  font-weight: bold;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+}
+
+.emergency:hover {
+  background: #fde047;
+}
+
+/* =========================
+   FOOTER
+========================= */
+footer {
+  text-align: center;
+  color: #64748b;
+  font-size: 0.8em;
+  margin-bottom: 20px;
+}
+</style>
 </head>
 
 <body>
 
-  <h1>🔋 Control de Ranuras</h1>
-  <p class="subtitle">ESP32 · AWS IoT · Dashboard Web</p>
+<h1>🔋 Battery Control Panel</h1>
+<p class="subtitle">Visual mockup · ESP32 Dashboard</p>
 
-  <div class="grid">
-    <div class="card">
-      <h2>Ranura 1</h2>
-      <div class="status">Control independiente</div>
-      <div class="buttons">
-        <button class="on" onclick="activarRanura(1)">ON</button>
-        <button class="off" onclick="desactivarRanura(1)">OFF</button>
-      </div>
+<div class="dashboard">
+
+  <!-- Ranura 1 -->
+  <div class="card" data-ranura="1">
+    <h2>Ranura 1</h2>
+    <div class="status off">Estado: OFF</div>
+
+    <div class="data">
+      <span>Voltaje: 4.20 V</span>
+      <span>Corriente: 0.15 A</span>
+      <span>Temperatura: 30 °C</span>
     </div>
 
-    <div class="card">
-      <h2>Ranura 2</h2>
-      <div class="status">Control independiente</div>
-      <div class="buttons">
-        <button class="on" onclick="activarRanura(2)">ON</button>
-        <button class="off" onclick="desactivarRanura(2)">OFF</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Ranura 3</h2>
-      <div class="status">Control independiente</div>
-      <div class="buttons">
-        <button class="on" onclick="activarRanura(3)">ON</button>
-        <button class="off" onclick="desactivarRanura(3)">OFF</button>
-      </div>
+    <div class="buttons">
+      <button class="btn-on" onclick="setOn(this)">ON</button>
+      <button class="btn-off" onclick="setOff(this)">OFF</button>
     </div>
   </div>
 
-  <button class="emergency" onclick="emergencia()">
-    🚨 APAGADO DE EMERGENCIA
-  </button>
+  <!-- Ranura 2 -->
+  <div class="card" data-ranura="2">
+    <h2>Ranura 2</h2>
+    <div class="status off">Estado: OFF</div>
 
-  <footer>
-    GitHub Pages · API Gateway · Lambda · AWS IoT
-  </footer>
+    <div class="data">
+      <span>Voltaje: 4.33 V</span>
+      <span>Corriente: 0.13 A</span>
+      <span>Temperatura: 30 °C</span>
+    </div>
 
-  <script>
-    const API_URL = "https://TU_API.execute-api.us-east-1.amazonaws.com/prod";
+    <div class="buttons">
+      <button class="btn-on" onclick="setOn(this)">ON</button>
+      <button class="btn-off" onclick="setOff(this)">OFF</button>
+    </div>
+  </div>
 
-    function enviarMensaje(message) {
-      fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "publish",
-          topic: "esp32/sub",
-          message: message
-        })
-      })
-      .then(() => console.log("✔ Comando enviado", message))
-      .catch(err => console.error("❌ Error", err));
-    }
+  <!-- Ranura 3 -->
+  <div class="card" data-ranura="3">
+    <h2>Ranura 3</h2>
+    <div class="status off">Estado: OFF</div>
 
-    function activarRanura(ranura) {
-      enviarMensaje({
-        ranura: ranura,
-        enable: true
-      });
-    }
+    <div class="data">
+      <span>Voltaje: 4.10 V</span>
+      <span>Corriente: 0.18 A</span>
+      <span>Temperatura: 31 °C</span>
+    </div>
 
-    function desactivarRanura(ranura) {
-      enviarMensaje({
-        ranura: ranura,
-        enable: false
-      });
-    }
+    <div class="buttons">
+      <button class="btn-on" onclick="setOn(this)">ON</button>
+      <button class="btn-off" onclick="setOff(this)">OFF</button>
+    </div>
+  </div>
 
-    function emergencia() {
-      enviarMensaje({
-        emergency: true
-      });
-    }
-  </script>
+</div>
+
+<button class="emergency" onclick="emergencyOff()">
+  🚨 APAGADO DE EMERGENCIA
+</button>
+
+<footer>
+  UI Prototype · Sin lógica · Sin backend
+</footer>
+
+<script>
+/* =========================
+   JS SOLO VISUAL
+========================= */
+function setOn(btn) {
+  const card = btn.closest(".card");
+  const status = card.querySelector(".status");
+  status.textContent = "Estado: ON";
+  status.classList.remove("off");
+  status.classList.add("on");
+}
+
+function setOff(btn) {
+  const card = btn.closest(".card");
+  const status = card.querySelector(".status");
+  status.textContent = "Estado: OFF";
+  status.classList.remove("on");
+  status.classList.add("off");
+}
+
+function emergencyOff() {
+  document.querySelectorAll(".card").forEach(card => {
+    const status = card.querySelector(".status");
+    status.textContent = "Estado: OFF";
+    status.classList.remove("on");
+    status.classList.add("off");
+  });
+}
+</script>
 
 </body>
 </html>
