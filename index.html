@@ -1,236 +1,403 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Battery Control UI</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-/* =====================
-   BASE
-===================== */
-body {
-  margin: 0;
-  font-family: "Segoe UI", sans-serif;
-  background: #0b0f14;
-  color: #e6e6e6;
-}
-
-.container {
-  width: 420px;
-  padding: 20px;
-}
-
-/* =====================
-   SECCIONES
-===================== */
-.section {
-  background: #121821;
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 20px;
-  box-shadow: inset 0 0 0 1px #1f2a38;
-}
-
-.section h3 {
-  margin: 0 0 12px;
-  font-size: 15px;
-  color: #4da3ff;
-}
-
-/* =====================
-   MODOS
-===================== */
-.modes {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.mode-btn {
-  background: #1b222c;
-  border: 1px solid #263244;
-  border-radius: 8px;
-  padding: 12px;
-  color: #ddd;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.mode-btn.active {
-  border-color: #4da3ff;
-  background: #162436;
-  color: #4da3ff;
-}
-
-.mode-btn:hover {
-  background: #202a38;
-}
-
-/* =====================
-   FORMULARIOS
-===================== */
-.form {
-  display: none;
-}
-
-.form.active {
-  display: block;
-}
-
-.field {
-  margin-bottom: 12px;
-}
-
-.field label {
-  display: block;
-  font-size: 13px;
-  margin-bottom: 4px;
-  color: #aaa;
-}
-
-.field input {
-  width: 100%;
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #263244;
-  background: #0e141c;
-  color: #fff;
-}
-
-/* =====================
-   BOTONES
-===================== */
-.start-btn {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 15px;
-  margin-top: 10px;
-}
-
-.start-manual { background: #2a8f3a; color: #fff; }
-.start-cccv   { background: #0d8aa6; color: #fff; }
-.start-other  { background: #444; color: #ccc; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Battery Tester Pro (Mock UI)</title>
 </head>
 
 <body>
-<div class="container">
-
-  <!-- =====================
-       MODOS
-  ====================== -->
-  <div class="section">
-    <h3>Seleccionar Modo</h3>
-    <div class="modes">
-      <button class="mode-btn active" onclick="selectMode('manual')">☝ Manual</button>
-      <button class="mode-btn" onclick="selectMode('descarga')">🔋 Descarga</button>
-      <button class="mode-btn" onclick="selectMode('cccv')">🔁 CC / CV</button>
-      <button class="mode-btn" onclick="selectMode('hppc')">📈 HPPC</button>
-      <button class="mode-btn" onclick="selectMode('rint')">📏 R. Int</button>
-      <button class="mode-btn" onclick="selectMode('dynamic')">📊 Dynamic</button>
-    </div>
-  </div>
-
-  <!-- =====================
-       MANUAL
-  ====================== -->
-  <div class="section form active" id="manual">
-    <h3>Modo Manual</h3>
-
-    <div class="field">
-      <label>Corriente (A)</label>
-      <input type="number" step="0.01" value="0.80">
-    </div>
-
-    <div class="field">
-      <label>Ventana gráfica (s)</label>
-      <input type="number" value="60">
-    </div>
-
-    <button class="start-btn start-manual">▶ Iniciar manual</button>
-  </div>
-
-  <!-- =====================
-       CC / CV
-  ====================== -->
-  <div class="section form" id="cccv">
-    <h3>Modo CC / CV</h3>
-    <p style="font-size:13px;color:#999">
-      Carga CC hasta V objetivo, luego CV hasta I corte
+  <header>
+    <h1>Battery Tester Pro v2 (Mock UI)</h1>
+    <p>
+      Interfaz estática en HTML (sin CSS/JS). Usa las secciones para elegir modo y editar parámetros.
     </p>
+    <hr />
+  </header>
 
-    <div class="field">
-      <label>Corriente CC (A)</label>
-      <input type="number" step="0.01" value="0.50">
-    </div>
+  <!-- =========================
+       CONEXIÓN / ESTADO GENERAL
+  ========================== -->
+  <section>
+    <h2>Conexión Serial (Referencia)</h2>
 
-    <div class="field">
-      <label>Voltaje objetivo (V)</label>
-      <input type="number" step="0.01" value="4.20">
-    </div>
+    <p><strong>Nota:</strong> En web real el listado de puertos se haría con WebSerial o backend. Aquí es solo maqueta.</p>
 
-    <div class="field">
-      <label>Corriente de corte (A)</label>
-      <input type="number" step="0.001" value="0.05">
-    </div>
+    <form>
+      <fieldset>
+        <legend>Puerto y Baudrate</legend>
 
-    <button class="start-btn start-cccv">▶ Iniciar CC / CV</button>
-  </div>
+        <label for="port">Puerto:</label><br />
+        <input id="port" name="port" type="text" placeholder="COM3 / /dev/ttyUSB0" /><br /><br />
 
-  <!-- =====================
-       DESCARGA
-  ====================== -->
-  <div class="section form" id="descarga">
-    <h3>Modo Descarga</h3>
+        <label for="baud">Baudrate:</label><br />
+        <input id="baud" name="baud" type="number" value="115200" min="1200" step="100" /><br /><br />
 
-    <div class="field">
-      <label>Corriente de descarga (A)</label>
-      <input type="number" step="0.01" value="-1.00">
-    </div>
+        <button type="button">Conectar</button>
+        <button type="button">Desconectar</button>
+        <button type="button">Refrescar puertos</button>
+      </fieldset>
 
-    <button class="start-btn start-other">▶ Iniciar descarga</button>
-  </div>
+      <fieldset>
+        <legend>Lecturas rápidas (UI)</legend>
 
-  <!-- =====================
-       OTROS (placeholder)
-  ====================== -->
-  <div class="section form" id="hppc">
-    <h3>Modo HPPC</h3>
-    <p style="color:#888">Configuración avanzada (pendiente)</p>
-    <button class="start-btn start-other">▶ Iniciar HPPC</button>
-  </div>
+        <label>Corriente (A):</label><br />
+        <output>--- A</output><br /><br />
 
-  <div class="section form" id="rint">
-    <h3>Resistencia Interna</h3>
-    <p style="color:#888">Configuración pendiente</p>
-    <button class="start-btn start-other">▶ Medir Rint</button>
-  </div>
+        <label>Voltaje (V):</label><br />
+        <output>--- V</output><br /><br />
 
-  <div class="section form" id="dynamic">
-    <h3>Modo Dinámico</h3>
-    <p style="color:#888">Perfil dinámico pendiente</p>
-    <button class="start-btn start-other">▶ Iniciar dinámico</button>
-  </div>
+        <label>Duty (%):</label><br />
+        <output>--- %</output><br /><br />
 
-</div>
+        <label>Estado / Modo:</label><br />
+        <output>IDLE</output>
+      </fieldset>
+    </form>
 
-<script>
-function selectMode(mode) {
-  // botones
-  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+    <hr />
+  </section>
 
-  // formularios
-  document.querySelectorAll('.form').forEach(f => f.classList.remove('active'));
-  document.getElementById(mode).classList.add('active');
-}
-</script>
+  <!-- =========================
+       SELECCIÓN DE MODOS
+  ========================== -->
+  <section>
+    <h2>Seleccionar Modo</h2>
+    <p>Abre el modo que quieras configurar:</p>
 
+    <!-- =========================
+         MODO MANUAL
+    ========================== -->
+    <details open>
+      <summary><strong>Manual</strong> (Carga / Descarga)</summary>
+      <form>
+        <fieldset>
+          <legend>Tipo de operación</legend>
+
+          <input type="radio" id="manual_charge" name="manual_dir" value="CHARGE" checked />
+          <label for="manual_charge">Carga (corriente positiva)</label><br />
+
+          <input type="radio" id="manual_discharge" name="manual_dir" value="DISCHARGE" />
+          <label for="manual_discharge">Descarga (corriente negativa)</label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Parámetros</legend>
+
+          <label for="manual_current">Corriente (A):</label><br />
+          <!-- PyQt: range 0.01 - 5.0, decimals 2, step 0.1, default 0.5 -->
+          <input id="manual_current" name="manual_current" type="number"
+                 min="0.01" max="5.0" step="0.1" value="0.5" /><br /><br />
+
+          <label for="manual_window">Ventana gráfica (s):</label><br />
+          <!-- PyQt: range 10 - 600, default 60 -->
+          <input id="manual_window" name="manual_window" type="number"
+                 min="10" max="600" step="1" value="60" /><br /><br />
+
+          <p>Atajos (equivalente a botones rápidos):</p>
+          <button type="button">0.10 A</button>
+          <button type="button">0.25 A</button>
+          <button type="button">0.50 A</button>
+          <button type="button">1.00 A</button>
+          <button type="button">2.00 A</button>
+        </fieldset>
+
+        <button type="button">▶ Iniciar manual</button>
+      </form>
+    </details>
+
+    <hr />
+
+    <!-- =========================
+         MODO DESCARGA
+    ========================== -->
+    <details>
+      <summary><strong>Descarga</strong> (Controlada con corte)</summary>
+      <form>
+        <fieldset>
+          <legend>Parámetros</legend>
+
+          <label for="dch_current">Corriente descarga (A):</label><br />
+          <!-- PyQt: range 0.01 - 5.0, default 0.5 (internamente se usa negativa) -->
+          <input id="dch_current" name="dch_current" type="number"
+                 min="0.01" max="5.0" step="0.1" value="0.5" /><br /><br />
+
+          <label for="dch_cutoff">Voltaje de corte (V):</label><br />
+          <!-- PyQt: range 2.0 - 4.0, step 0.1, default 2.5 -->
+          <input id="dch_cutoff" name="dch_cutoff" type="number"
+                 min="2.0" max="4.0" step="0.1" value="2.5" /><br /><br />
+
+          <p>Atajos de corriente:</p>
+          <button type="button">0.10 A</button>
+          <button type="button">0.25 A</button>
+          <button type="button">0.50 A</button>
+          <button type="button">1.00 A</button>
+          <button type="button">2.00 A</button>
+        </fieldset>
+
+        <fieldset>
+          <legend>Indicadores (UI)</legend>
+          <label>Tiempo descarga:</label><br />
+          <output>--:--:--</output><br /><br />
+          <label>Capacidad descargada:</label><br />
+          <output>-- Ah</output>
+        </fieldset>
+
+        <button type="button">▶ Iniciar descarga</button>
+      </form>
+    </details>
+
+    <hr />
+
+    <!-- =========================
+         MODO CC/CV
+    ========================== -->
+    <details>
+      <summary><strong>CC / CV</strong> (Carga)</summary>
+      <form>
+        <p>
+          Carga CC hasta V objetivo, luego CV hasta I de corte.
+        </p>
+
+        <fieldset>
+          <legend>Parámetros</legend>
+
+          <label for="cccv_current">Corriente CC (A):</label><br />
+          <!-- PyQt: range 0.05 - 5.0, step 0.01?, default 0.5 -->
+          <input id="cccv_current" name="cccv_current" type="number"
+                 min="0.05" max="5.0" step="0.01" value="0.5" /><br /><br />
+
+          <label for="cccv_voltage">Voltaje objetivo (V):</label><br />
+          <!-- PyQt: range 3.0 - 4.5, step 0.01, default 4.2 -->
+          <input id="cccv_voltage" name="cccv_voltage" type="number"
+                 min="3.0" max="4.5" step="0.01" value="4.2" /><br /><br />
+
+          <label for="cccv_cutoff">Corriente corte (A):</label><br />
+          <!-- PyQt: range 0.01 - 1.0, decimals 3, default 0.05 -->
+          <input id="cccv_cutoff" name="cccv_cutoff" type="number"
+                 min="0.01" max="1.0" step="0.001" value="0.05" /><br /><br />
+        </fieldset>
+
+        <fieldset>
+          <legend>Fase (UI)</legend>
+          <output>Fase: --</output>
+        </fieldset>
+
+        <button type="button">▶ Iniciar CC/CV</button>
+      </form>
+    </details>
+
+    <hr />
+
+    <!-- =========================
+         MODO HPPC
+    ========================== -->
+    <details>
+      <summary><strong>HPPC</strong> (Reposo → Descarga → Reposo → Carga → Reposo)</summary>
+      <form>
+        <p>Secuencia: Reposo → Descarga → Reposo → Carga → Reposo.</p>
+
+        <fieldset>
+          <legend>Parámetros</legend>
+
+          <label for="hppc_i_discharge">I descarga (A):</label><br />
+          <!-- PyQt: range 0.1 - 5.0, default 1.0 -->
+          <input id="hppc_i_discharge" name="hppc_i_discharge" type="number"
+                 min="0.1" max="5.0" step="0.01" value="1.0" /><br /><br />
+
+          <label for="hppc_i_charge">I carga (A):</label><br />
+          <!-- PyQt: range 0.1 - 5.0, default 1.0 -->
+          <input id="hppc_i_charge" name="hppc_i_charge" type="number"
+                 min="0.1" max="5.0" step="0.01" value="1.0" /><br /><br />
+
+          <label for="hppc_t_discharge">t descarga (s):</label><br />
+          <!-- PyQt: range 1 - 60, default 10 -->
+          <input id="hppc_t_discharge" name="hppc_t_discharge" type="number"
+                 min="1" max="60" step="1" value="10" /><br /><br />
+
+          <label for="hppc_t_charge">t carga (s):</label><br />
+          <!-- PyQt: range 1 - 60, default 10 -->
+          <input id="hppc_t_charge" name="hppc_t_charge" type="number"
+                 min="1" max="60" step="1" value="10" /><br /><br />
+
+          <label for="hppc_t_rest">t reposo (s):</label><br />
+          <!-- PyQt: range 1 - 180, default 40 -->
+          <input id="hppc_t_rest" name="hppc_t_rest" type="number"
+                 min="1" max="180" step="1" value="40" /><br /><br />
+
+          <label for="hppc_cycles">Ciclos:</label><br />
+          <!-- PyQt: range 1 - 20, default 1 -->
+          <input id="hppc_cycles" name="hppc_cycles" type="number"
+                 min="1" max="20" step="1" value="1" /><br /><br />
+        </fieldset>
+
+        <fieldset>
+          <legend>Indicadores (UI)</legend>
+          <label>Tiempo total (estimado):</label><br />
+          <output>-- s</output><br /><br />
+          <label>Fase:</label><br />
+          <output>Fase: --</output>
+        </fieldset>
+
+        <button type="button">▶ Iniciar HPPC</button>
+      </form>
+    </details>
+
+    <hr />
+
+    <!-- =========================
+         MODO RESISTENCIA INTERNA
+    ========================== -->
+    <details>
+      <summary><strong>R. Int</strong> (Resistencia interna con pulsos)</summary>
+      <form>
+        <p>Tres pulsos para estimar resistencia interna.</p>
+
+        <fieldset>
+          <legend>Parámetros</legend>
+
+          <label for="rint_current">Corriente pulso (A):</label><br />
+          <!-- PyQt: range 0.1 - 5.0, default 1.0 -->
+          <input id="rint_current" name="rint_current" type="number"
+                 min="0.1" max="5.0" step="0.01" value="1.0" /><br /><br />
+
+          <label for="rint_duration">Duración pulso (s):</label><br />
+          <!-- PyQt: range 0.2 - 30.0, step 0.1, default 5.0 -->
+          <input id="rint_duration" name="rint_duration" type="number"
+                 min="0.2" max="30.0" step="0.1" value="5.0" /><br /><br />
+
+          <label for="rint_rest">Reposo (s):</label><br />
+          <!-- PyQt: range 0.5 - 300.0, step 0.5, default 20.0 -->
+          <input id="rint_rest" name="rint_rest" type="number"
+                 min="0.5" max="300.0" step="0.5" value="20.0" /><br /><br />
+
+          <label for="rint_type">Tipo de pulso:</label><br />
+          <select id="rint_type" name="rint_type">
+            <option value="DISCHARGE">Descarga</option>
+            <option value="CHARGE">Carga</option>
+          </select>
+        </fieldset>
+
+        <fieldset>
+          <legend>Resultados (UI)</legend>
+          <label>Estado:</label><br />
+          <output>Estado: --</output><br /><br />
+
+          <label>Mediciones:</label><br />
+          <output>--</output>
+        </fieldset>
+
+        <button type="button">▶ Iniciar medición R int</button>
+      </form>
+    </details>
+
+    <hr />
+
+    <!-- =========================
+         MODO DYNAMIC
+    ========================== -->
+    <details>
+      <summary><strong>Dynamic</strong> (Perfil por pasos)</summary>
+      <form>
+        <p>Pulsos personalizables (tabla de pasos). Sin JS no se pueden agregar filas dinámicamente; duplica filas manualmente.</p>
+
+        <fieldset>
+          <legend>Tabla de pasos</legend>
+
+          <table border="1" cellpadding="6" cellspacing="0">
+            <thead>
+              <tr>
+                <th>Corriente (A)</th>
+                <th>Duración (s)</th>
+                <th>Descanso (s)</th>
+                <th>Tipo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Fila 1 -->
+              <tr>
+                <td><input type="number" step="0.01" min="0.01" max="5.0" value="0.5" /></td>
+                <td><input type="number" step="0.1" min="0.1" value="10" /></td>
+                <td><input type="number" step="0.1" min="0" value="5" /></td>
+                <td>
+                  <select>
+                    <option value="CHARGE">Carga</option>
+                    <option value="DISCHARGE" selected>Descarga</option>
+                  </select>
+                </td>
+              </tr>
+
+              <!-- Fila 2 -->
+              <tr>
+                <td><input type="number" step="0.01" min="0.01" max="5.0" value="1.0" /></td>
+                <td><input type="number" step="0.1" min="0.1" value="8" /></td>
+                <td><input type="number" step="0.1" min="0" value="2" /></td>
+                <td>
+                  <select>
+                    <option value="CHARGE" selected>Carga</option>
+                    <option value="DISCHARGE">Descarga</option>
+                  </select>
+                </td>
+              </tr>
+
+              <!-- Puedes duplicar más filas -->
+            </tbody>
+          </table>
+
+          <p>
+            <button type="button">Agregar (requiere JS)</button>
+            <button type="button">Eliminar (requiere JS)</button>
+            <button type="button">Limpiar (requiere JS)</button>
+          </p>
+
+          <label>Tiempo total (UI):</label><br />
+          <output>0 s</output><br /><br />
+
+          <label>Paso / fase (UI):</label><br />
+          <output>Paso: --</output>
+        </fieldset>
+
+        <button type="button">▶ Iniciar DYNAMIC</button>
+      </form>
+    </details>
+
+    <hr />
+
+  </section>
+
+  <!-- =========================
+       CONTROLES GENERALES
+  ========================== -->
+  <section>
+    <h2>Controles Generales</h2>
+
+    <button type="button">⛔ Parada de Emergencia</button>
+    <button type="button">🧹 Limpiar gráficas (UI)</button>
+    <button type="button">📄 Exportar datos CSV (UI)</button>
+
+    <hr />
+  </section>
+
+  <!-- =========================
+       CONSOLA / COMANDOS
+  ========================== -->
+  <section>
+    <h2>Consola Serial (Mock)</h2>
+
+    <p>Este bloque emula la consola y el envío de comandos manuales (sin JS no enviará nada).</p>
+
+    <label for="console">Consola:</label><br />
+    <textarea id="console" rows="8" cols="60" readonly placeholder="Salida serial..."></textarea><br /><br />
+
+    <label for="cmd">Comando manual:</label><br />
+    <input id="cmd" type="text" placeholder="CMD,..." size="40" />
+    <button type="button">Enviar</button>
+
+    <hr />
+  </section>
+
+  <footer>
+    <p><small>Mock UI — Solo estructura HTML (sin estilos ni lógica).</small></p>
+  </footer>
 </body>
 </html>
