@@ -6,9 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-/* =========================
-   BASE
-========================= */
 body {
   margin: 0;
   background: #0e131a;
@@ -16,26 +13,19 @@ body {
   font-family: "Segoe UI", system-ui, sans-serif;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-/* =========================
-   LAYOUT
-========================= */
 .app {
   display: grid;
   grid-template-columns: 320px 1fr;
   height: 100vh;
 }
 
-/* =========================
-   SIDEBAR
-========================= */
+/* ===== SIDEBAR ===== */
 .sidebar {
   background: #0b0f16;
   padding: 15px;
-  border-right: 1px solid #1f2933;
+  border-right: 1px solid #1f2937;
   overflow-y: auto;
 }
 
@@ -52,9 +42,7 @@ body {
   color: #60a5fa;
 }
 
-/* =========================
-   STATUS
-========================= */
+/* ===== STATUS ===== */
 .status {
   display: flex;
   align-items: center;
@@ -67,13 +55,10 @@ body {
   height: 10px;
   border-radius: 50%;
 }
-
 .dot.red { background: #ef4444; }
 .dot.green { background: #22c55e; }
 
-/* =========================
-   BUTTONS
-========================= */
+/* ===== BUTTONS ===== */
 button {
   width: 100%;
   padding: 10px;
@@ -90,18 +75,22 @@ button:hover {
   background: #374151;
 }
 
+button.active {
+  background: #2563eb;
+  color: #eff6ff;
+}
+
 button.primary {
   background: #16a34a;
   color: #052e16;
 }
 
-button.primary:hover {
-  background: #22c55e;
+button.primary.running {
+  background: #dc2626;
+  color: #fee2e2;
 }
 
-/* =========================
-   INPUTS
-========================= */
+/* ===== INPUTS ===== */
 label {
   font-size: 0.8em;
   color: #9ca3af;
@@ -117,9 +106,7 @@ input {
   margin-top: 4px;
 }
 
-/* =========================
-   MAIN AREA
-========================= */
+/* ===== MAIN ===== */
 .main {
   display: grid;
   grid-template-rows: 1fr 1fr 180px;
@@ -127,9 +114,6 @@ input {
   padding: 10px;
 }
 
-/* =========================
-   CHARTS
-========================= */
 .chart {
   background: #020617;
   border-radius: 10px;
@@ -138,10 +122,8 @@ input {
 }
 
 .chart h2 {
-  margin: 0 0 5px;
-  font-size: 1em;
+  margin: 0;
   text-align: center;
-  color: #e5e7eb;
 }
 
 .canvas-placeholder {
@@ -151,12 +133,9 @@ input {
   align-items: center;
   justify-content: center;
   color: #64748b;
-  font-size: 0.85em;
 }
 
-/* =========================
-   CONSOLE
-========================= */
+/* ===== CONSOLE ===== */
 .console {
   background: #020617;
   border-radius: 10px;
@@ -166,18 +145,8 @@ input {
   flex-direction: column;
 }
 
-.console h3 {
-  margin: 0 0 5px;
-  font-size: 0.9em;
-  color: #38bdf8;
-}
-
 .console-output {
   flex: 1;
-  background: #020617;
-  border: 1px solid #1f2937;
-  border-radius: 6px;
-  padding: 6px;
   font-family: monospace;
   font-size: 0.8em;
   color: #22c55e;
@@ -190,82 +159,114 @@ input {
 
 <div class="app">
 
-  <!-- SIDEBAR -->
   <div class="sidebar">
 
     <div class="group">
-      <h3>Conexión Serial</h3>
-      <label>Puerto</label>
-      <input value="COM1">
-      <button>Conectar</button>
+      <h3>Estado</h3>
       <div class="status">
-        <div class="dot red"></div>
-        Desconectado
+        <div id="statusDot" class="dot red"></div>
+        <span id="statusText">IDLE</span>
       </div>
-    </div>
-
-    <div class="group">
-      <h3>Mediciones en Tiempo Real</h3>
-      ⚡ -- A<br>
-      🔋 -- V<br>
-      ⚙️ Duty: -- %<br>
-      🟡 Estado: IDLE
     </div>
 
     <div class="group">
       <h3>Seleccionar Modo</h3>
-      <button>Manual</button>
-      <button>Descarga</button>
-      <button>CC / CV</button>
-      <button>HPPC</button>
-      <button>R. Int</button>
-      <button>Dynamic</button>
+      <button class="mode-btn" data-mode="Manual">Manual</button>
+      <button class="mode-btn" data-mode="Descarga">Descarga</button>
+      <button class="mode-btn" data-mode="CC/CV">CC / CV</button>
+      <button class="mode-btn" data-mode="HPPC">HPPC</button>
+      <button class="mode-btn" data-mode="Rint">R. Int</button>
+      <button class="mode-btn" data-mode="Dynamic">Dynamic</button>
     </div>
 
     <div class="group">
       <h3>Tipo de operación</h3>
-      <button>Carga (+)</button>
-      <button>Descarga (-)</button>
+      <button class="op-btn" data-op="Carga">Carga (+)</button>
+      <button class="op-btn" data-op="Descarga">Descarga (-)</button>
 
       <label>Corriente (A)</label>
-      <input value="0.50">
+      <input id="currentInput" value="0.50">
 
       <label>Ventana gráfica (s)</label>
       <input value="60">
 
-      <button class="primary">Iniciar manual</button>
+      <button id="startBtn" class="primary">Iniciar manual</button>
     </div>
 
   </div>
 
-  <!-- MAIN -->
   <div class="main">
-
     <div class="chart">
       <h2>Corriente</h2>
-      <div class="canvas-placeholder">
-        Gráfica Matplotlib (mock)
-      </div>
+      <div class="canvas-placeholder">Gráfica mock</div>
     </div>
 
     <div class="chart">
       <h2>Voltaje</h2>
-      <div class="canvas-placeholder">
-        Gráfica Matplotlib (mock)
-      </div>
+      <div class="canvas-placeholder">Gráfica mock</div>
     </div>
 
     <div class="console">
-      <h3>Consola Serial</h3>
-      <div class="console-output">
-        &gt; Sistema iniciado<br>
-        &gt; Esperando conexión...
-      </div>
+      <strong>Consola</strong>
+      <div id="console" class="console-output"></div>
     </div>
-
   </div>
 
 </div>
+
+<script>
+const state = {
+  mode: null,
+  operation: null,
+  running: false
+};
+
+const consoleEl = document.getElementById("console");
+const statusText = document.getElementById("statusText");
+const statusDot = document.getElementById("statusDot");
+const startBtn = document.getElementById("startBtn");
+
+function log(msg) {
+  consoleEl.innerHTML += `> ${msg}<br>`;
+  consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+
+document.querySelectorAll(".mode-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    state.mode = btn.dataset.mode;
+    log(`Modo seleccionado: ${state.mode}`);
+  };
+});
+
+document.querySelectorAll(".op-btn").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll(".op-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    state.operation = btn.dataset.op;
+    log(`Operación: ${state.operation}`);
+  };
+});
+
+startBtn.onclick = () => {
+  state.running = !state.running;
+
+  if (state.running) {
+    statusText.textContent = "RUNNING";
+    statusDot.className = "dot green";
+    startBtn.textContent = "Detener";
+    startBtn.classList.add("running");
+    log(`Proceso iniciado (${state.mode || "sin modo"})`);
+  } else {
+    statusText.textContent = "IDLE";
+    statusDot.className = "dot red";
+    startBtn.textContent = "Iniciar manual";
+    startBtn.classList.remove("running");
+    log("Proceso detenido");
+  }
+};
+</script>
 
 </body>
 </html>
