@@ -2,251 +2,270 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Battery Control Panel</title>
+<title>Battery Control GUI</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 /* =========================
-   ESTILO GENERAL
+   BASE
 ========================= */
 body {
   margin: 0;
-  background: #0b1220;
-  color: #e5e7eb;
+  background: #0e131a;
+  color: #d1d5db;
   font-family: "Segoe UI", system-ui, sans-serif;
 }
 
-h1 {
-  text-align: center;
-  margin: 20px 0 5px;
-}
-
-.subtitle {
-  text-align: center;
-  color: #94a3b8;
-  margin-bottom: 30px;
+* {
+  box-sizing: border-box;
 }
 
 /* =========================
-   CONTENEDOR PRINCIPAL
+   LAYOUT
 ========================= */
-.dashboard {
-  max-width: 1100px;
-  margin: auto;
-  padding: 20px;
+.app {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
+  grid-template-columns: 320px 1fr;
+  height: 100vh;
 }
 
 /* =========================
-   TARJETA RANURA
+   SIDEBAR
 ========================= */
-.card {
+.sidebar {
+  background: #0b0f16;
+  padding: 15px;
+  border-right: 1px solid #1f2933;
+  overflow-y: auto;
+}
+
+.group {
   background: #111827;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 10px 25px rgba(0,0,0,.4);
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
 }
 
-.card h2 {
-  margin: 0;
-  font-size: 1.2em;
-}
-
-/* =========================
-   INFO TÉCNICA
-========================= */
-.data {
-  font-size: 0.9em;
-  color: #cbd5f5;
-}
-
-.data span {
-  display: block;
+.group h3 {
+  margin: 0 0 10px;
+  font-size: 0.95em;
+  color: #60a5fa;
 }
 
 /* =========================
-   ESTADO
+   STATUS
 ========================= */
 .status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 0.85em;
-  font-weight: bold;
 }
 
-.status.on {
-  color: #22c55e;
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
 }
 
-.status.off {
-  color: #ef4444;
-}
+.dot.red { background: #ef4444; }
+.dot.green { background: #22c55e; }
 
 /* =========================
-   BOTONES
+   BUTTONS
 ========================= */
-.buttons {
-  display: flex;
-  gap: 10px;
-}
-
 button {
-  flex: 1;
+  width: 100%;
   padding: 10px;
-  border-radius: 10px;
+  margin-top: 6px;
+  border-radius: 8px;
   border: none;
+  background: #1f2937;
+  color: #e5e7eb;
   cursor: pointer;
-  font-weight: bold;
-  transition: transform .1s ease, opacity .1s ease;
+  font-weight: 600;
 }
 
 button:hover {
-  transform: scale(1.05);
-  opacity: 0.9;
+  background: #374151;
 }
 
-.btn-on {
-  background: #22c55e;
+button.primary {
+  background: #16a34a;
   color: #052e16;
 }
 
-.btn-off {
-  background: #ef4444;
-  color: #450a0a;
+button.primary:hover {
+  background: #22c55e;
 }
 
 /* =========================
-   EMERGENCIA
+   INPUTS
 ========================= */
-.emergency {
-  margin: 40px auto;
-  display: block;
-  padding: 16px 40px;
-  background: #facc15;
-  color: #422006;
-  font-size: 1.2em;
-  font-weight: bold;
-  border-radius: 16px;
-  border: none;
-  cursor: pointer;
-}
-
-.emergency:hover {
-  background: #fde047;
-}
-
-/* =========================
-   FOOTER
-========================= */
-footer {
-  text-align: center;
-  color: #64748b;
+label {
   font-size: 0.8em;
-  margin-bottom: 20px;
+  color: #9ca3af;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  background: #020617;
+  border: 1px solid #1f2937;
+  color: #e5e7eb;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+/* =========================
+   MAIN AREA
+========================= */
+.main {
+  display: grid;
+  grid-template-rows: 1fr 1fr 180px;
+  gap: 10px;
+  padding: 10px;
+}
+
+/* =========================
+   CHARTS
+========================= */
+.chart {
+  background: #020617;
+  border-radius: 10px;
+  padding: 10px;
+  border: 1px solid #1f2937;
+}
+
+.chart h2 {
+  margin: 0 0 5px;
+  font-size: 1em;
+  text-align: center;
+  color: #e5e7eb;
+}
+
+.canvas-placeholder {
+  height: calc(100% - 30px);
+  border: 1px dashed #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.85em;
+}
+
+/* =========================
+   CONSOLE
+========================= */
+.console {
+  background: #020617;
+  border-radius: 10px;
+  border: 1px solid #1f2937;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.console h3 {
+  margin: 0 0 5px;
+  font-size: 0.9em;
+  color: #38bdf8;
+}
+
+.console-output {
+  flex: 1;
+  background: #020617;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  padding: 6px;
+  font-family: monospace;
+  font-size: 0.8em;
+  color: #22c55e;
+  overflow-y: auto;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🔋 Battery Control Panel</h1>
-<p class="subtitle">Visual mockup · ESP32 Dashboard</p>
+<div class="app">
 
-<div class="dashboard">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
 
-  <!-- Ranura 1 -->
-  <div class="card" data-ranura="1">
-    <h2>Ranura 1</h2>
-    <div class="status off">Estado: OFF</div>
-
-    <div class="data">
-      <span>Voltaje: 4.20 V</span>
-      <span>Corriente: 0.15 A</span>
-      <span>Temperatura: 30 °C</span>
+    <div class="group">
+      <h3>Conexión Serial</h3>
+      <label>Puerto</label>
+      <input value="COM1">
+      <button>Conectar</button>
+      <div class="status">
+        <div class="dot red"></div>
+        Desconectado
+      </div>
     </div>
 
-    <div class="buttons">
-      <button class="btn-on" onclick="setOn(this)">ON</button>
-      <button class="btn-off" onclick="setOff(this)">OFF</button>
+    <div class="group">
+      <h3>Mediciones en Tiempo Real</h3>
+      ⚡ -- A<br>
+      🔋 -- V<br>
+      ⚙️ Duty: -- %<br>
+      🟡 Estado: IDLE
     </div>
+
+    <div class="group">
+      <h3>Seleccionar Modo</h3>
+      <button>Manual</button>
+      <button>Descarga</button>
+      <button>CC / CV</button>
+      <button>HPPC</button>
+      <button>R. Int</button>
+      <button>Dynamic</button>
+    </div>
+
+    <div class="group">
+      <h3>Tipo de operación</h3>
+      <button>Carga (+)</button>
+      <button>Descarga (-)</button>
+
+      <label>Corriente (A)</label>
+      <input value="0.50">
+
+      <label>Ventana gráfica (s)</label>
+      <input value="60">
+
+      <button class="primary">Iniciar manual</button>
+    </div>
+
   </div>
 
-  <!-- Ranura 2 -->
-  <div class="card" data-ranura="2">
-    <h2>Ranura 2</h2>
-    <div class="status off">Estado: OFF</div>
+  <!-- MAIN -->
+  <div class="main">
 
-    <div class="data">
-      <span>Voltaje: 4.33 V</span>
-      <span>Corriente: 0.13 A</span>
-      <span>Temperatura: 30 °C</span>
+    <div class="chart">
+      <h2>Corriente</h2>
+      <div class="canvas-placeholder">
+        Gráfica Matplotlib (mock)
+      </div>
     </div>
 
-    <div class="buttons">
-      <button class="btn-on" onclick="setOn(this)">ON</button>
-      <button class="btn-off" onclick="setOff(this)">OFF</button>
-    </div>
-  </div>
-
-  <!-- Ranura 3 -->
-  <div class="card" data-ranura="3">
-    <h2>Ranura 3</h2>
-    <div class="status off">Estado: OFF</div>
-
-    <div class="data">
-      <span>Voltaje: 4.10 V</span>
-      <span>Corriente: 0.18 A</span>
-      <span>Temperatura: 31 °C</span>
+    <div class="chart">
+      <h2>Voltaje</h2>
+      <div class="canvas-placeholder">
+        Gráfica Matplotlib (mock)
+      </div>
     </div>
 
-    <div class="buttons">
-      <button class="btn-on" onclick="setOn(this)">ON</button>
-      <button class="btn-off" onclick="setOff(this)">OFF</button>
+    <div class="console">
+      <h3>Consola Serial</h3>
+      <div class="console-output">
+        &gt; Sistema iniciado<br>
+        &gt; Esperando conexión...
+      </div>
     </div>
+
   </div>
 
 </div>
-
-<button class="emergency" onclick="emergencyOff()">
-  🚨 APAGADO DE EMERGENCIA
-</button>
-
-<footer>
-  UI Prototype · Sin lógica · Sin backend
-</footer>
-
-<script>
-/* =========================
-   JS SOLO VISUAL
-========================= */
-function setOn(btn) {
-  const card = btn.closest(".card");
-  const status = card.querySelector(".status");
-  status.textContent = "Estado: ON";
-  status.classList.remove("off");
-  status.classList.add("on");
-}
-
-function setOff(btn) {
-  const card = btn.closest(".card");
-  const status = card.querySelector(".status");
-  status.textContent = "Estado: OFF";
-  status.classList.remove("on");
-  status.classList.add("off");
-}
-
-function emergencyOff() {
-  document.querySelectorAll(".card").forEach(card => {
-    const status = card.querySelector(".status");
-    status.textContent = "Estado: OFF";
-    status.classList.remove("on");
-    status.classList.add("off");
-  });
-}
-</script>
 
 </body>
 </html>
