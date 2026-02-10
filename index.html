@@ -1,95 +1,199 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Control ESP32 – Celdas</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>Control ESP32 · AWS IoT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --ok: #22c55e;
+      --off: #ef4444;
+      --warn: #facc15;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    p.subtitle {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 30px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 20px rgba(0,0,0,.3);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    .status {
+      font-size: 0.9em;
+      margin-bottom: 15px;
+      color: var(--muted);
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      flex: 1;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 0.9em;
+      cursor: pointer;
+      transition: transform .1s ease, opacity .1s ease;
+    }
+
+    button:hover {
+      transform: scale(1.03);
+      opacity: 0.9;
+    }
+
+    .on {
+      background: var(--ok);
+      color: #052e16;
+    }
+
+    .off {
+      background: var(--off);
+      color: #450a0a;
+    }
+
+    .emergency {
+      margin: 40px auto 0;
+      display: block;
+      background: var(--warn);
+      color: #422006;
+      padding: 15px 30px;
+      font-size: 1.1em;
+      border-radius: 14px;
+      max-width: 300px;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      color: var(--muted);
+      font-size: 0.8em;
+    }
+  </style>
 </head>
 
 <body>
-<h2>🔋 Control de Celdas ESP32</h2>
 
-<div class="panel">
-  <h3>Ranura 1</h3>
-  <button onclick="send({ranura:1, enable:true})">▶ Activar</button>
-  <button onclick="send({ranura:1, enable:false})">⏹ Apagar</button>
-  <button onclick="send({ranura:1, lock:true})">🔒 Bloquear</button>
-  <button onclick="send({ranura:1, lock:false})">🔓 Desbloquear</button>
-</div>
+  <h1>🔋 Control de Ranuras</h1>
+  <p class="subtitle">ESP32 · AWS IoT · Dashboard Web</p>
 
-<div class="panel">
-  <h3>Ranura 2</h3>
-  <button onclick="send({ranura:2, enable:true})">▶ Activar</button>
-  <button onclick="send({ranura:2, enable:false})">⏹ Apagar</button>
-  <button onclick="send({ranura:2, lock:true})">🔒 Bloquear</button>
-  <button onclick="send({ranura:2, lock:false})">🔓 Desbloquear</button>
-</div>
+  <div class="grid">
+    <div class="card">
+      <h2>Ranura 1</h2>
+      <div class="status">Control independiente</div>
+      <div class="buttons">
+        <button class="on" onclick="activarRanura(1)">ON</button>
+        <button class="off" onclick="desactivarRanura(1)">OFF</button>
+      </div>
+    </div>
 
-<div class="panel emergency">
-  <h3>🚨 Emergencia</h3>
-  <button onclick="send({emergency:true})">APAGADO TOTAL</button>
-</div>
+    <div class="card">
+      <h2>Ranura 2</h2>
+      <div class="status">Control independiente</div>
+      <div class="buttons">
+        <button class="on" onclick="activarRanura(2)">ON</button>
+        <button class="off" onclick="desactivarRanura(2)">OFF</button>
+      </div>
+    </div>
 
-<pre id="log"></pre>
+    <div class="card">
+      <h2>Ranura 3</h2>
+      <div class="status">Control independiente</div>
+      <div class="buttons">
+        <button class="on" onclick="activarRanura(3)">ON</button>
+        <button class="off" onclick="desactivarRanura(3)">OFF</button>
+      </div>
+    </div>
+  </div>
 
-<script>
-const API_URL = "https://027nr82y14.execute-api.us-east-1.amazonaws.com/iot";
+  <button class="emergency" onclick="emergencia()">
+    🚨 APAGADO DE EMERGENCIA
+  </button>
 
-function log(msg) {
-  const t = new Date().toLocaleTimeString();
-  document.getElementById("log").textContent += `[${t}] ${msg}\n`;
-}
+  <footer>
+    GitHub Pages · API Gateway · Lambda · AWS IoT
+  </footer>
 
-async function send(message) {
-  log("📤 Enviando: " + JSON.stringify(message));
+  <script>
+    const API_URL = "https://TU_API.execute-api.us-east-1.amazonaws.com/prod";
 
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "publish",
-        topic: "esp32/sub",
-        message: message
+    function enviarMensaje(message) {
+      fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "publish",
+          topic: "esp32/sub",
+          message: message
+        })
       })
-    });
+      .then(() => console.log("✔ Comando enviado", message))
+      .catch(err => console.error("❌ Error", err));
+    }
 
-    const data = await res.json();
-    data.success ? log("✅ OK") : log("❌ Error");
-  } catch (e) {
-    log("❌ " + e.message);
-  }
-}
-</script>
+    function activarRanura(ranura) {
+      enviarMensaje({
+        ranura: ranura,
+        enable: true
+      });
+    }
 
-<style>
-body {
-  font-family: Arial;
-  background: #111;
-  color: #eee;
-  padding: 20px;
-}
-.panel {
-  background: #222;
-  padding: 15px;
-  margin-bottom: 15px;
-  border-radius: 8px;
-}
-.emergency {
-  background: #5a0000;
-}
-button {
-  margin: 5px;
-  padding: 10px 16px;
-  font-size: 14px;
-  cursor: pointer;
-}
-#log {
-  background: #000;
-  padding: 10px;
-  height: 200px;
-  overflow-y: auto;
-}
-</style>
+    function desactivarRanura(ranura) {
+      enviarMensaje({
+        ranura: ranura,
+        enable: false
+      });
+    }
+
+    function emergencia() {
+      enviarMensaje({
+        emergency: true
+      });
+    }
+  </script>
+
 </body>
 </html>
