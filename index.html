@@ -3,401 +3,1120 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Battery Tester Pro (Mock UI)</title>
+  <title>Battery Control UI (Slots + Modes)</title>
+
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#121821;
+      --panel2:#0e141c;
+      --border:#1f2a38;
+      --border2:#263244;
+      --txt:#e6e6e6;
+      --muted:#9aa4b2;
+      --blue:#4da3ff;
+      --cyan:#39d4e2;
+      --pink:#f778ba;
+      --yellow:#d29922;
+      --green:#2a8f3a;
+      --teal:#0d8aa6;
+      --orange:#f0883e;
+      --red:#f85149;
+      --shadow: inset 0 0 0 1px var(--border);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+    }
+
+    .wrap{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 440px 1fr;
+      gap: 14px;
+    }
+
+    header{
+      grid-column: 1 / -1;
+      padding: 18px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(18,24,33,.95), rgba(18,24,33,.75));
+      box-shadow: var(--shadow);
+    }
+    header h1{ margin:0 0 6px; font-size: 18px; color: var(--blue); }
+    header p{ margin:0; color: var(--muted); font-size: 13px; }
+
+    .card{
+      background: var(--panel);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .card h2{
+      margin:0 0 10px;
+      font-size: 14px;
+      color: var(--blue);
+      letter-spacing: .2px;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+
+    .row.space{ justify-content: space-between; }
+    .col{
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label{
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    input, select, textarea{
+      width: 100%;
+      padding: 10px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border2);
+      background: var(--panel2);
+      color: var(--txt);
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus{
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(77,163,255,.15);
+    }
+
+    .btn{
+      border: 1px solid var(--border2);
+      background: #1b222c;
+      color: var(--txt);
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: .15s;
+      user-select: none;
+    }
+    .btn:hover{ background:#202a38; border-color:#3a4b65; }
+    .btn:active{ transform: translateY(1px); }
+
+    .btn.primary{ background: var(--green); border-color: rgba(42,143,58,.8); color: #fff; }
+    .btn.teal{ background: var(--teal); border-color: rgba(13,138,166,.8); color:#fff; }
+    .btn.orange{ background: #b45309; border-color: #d97706; color:#fff; }
+    .btn.red{ background: #da3633; border-color: #f85149; color:#fff; }
+    .btn.ghost{ background: transparent; }
+
+    .btn.small{ padding: 8px 10px; font-size: 12px; border-radius: 10px; }
+    .btn.wide{ width: 100%; }
+
+    .badge{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border2);
+      background: #0e141c;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .dot{
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #30363d;
+    }
+    .dot.on{ background: var(--green); }
+    .dot.lock{ background: var(--yellow); }
+    .dot.off{ background: #6e7681; }
+    .dot.emg{ background: var(--red); }
+
+    .modes{
+      display:grid;
+      grid-template-columns: repeat(2,1fr);
+      gap:10px;
+      margin-top: 8px;
+    }
+    .mode-btn{
+      background: #1b222c;
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 12px;
+      color: #ddd;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .15s;
+      text-align:left;
+    }
+    .mode-btn.active{
+      border-color: var(--blue);
+      background: #162436;
+      color: var(--blue);
+    }
+    .mode-btn:hover{ background:#202a38; }
+
+    .form{ display:none; }
+    .form.active{ display:block; }
+
+    .hint{
+      font-size: 12px;
+      color: var(--muted);
+      margin: 6px 0 0;
+      line-height: 1.3;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .subtle{
+      border-top: 1px solid var(--border);
+      margin: 12px 0;
+      opacity: .9;
+    }
+
+    .kpis{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .kpi{
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border2);
+      background: #0e141c;
+    }
+    .kpi .t{ font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .kpi .v{ font-size: 18px; font-weight: 800; }
+    .kpi .v.cyan{ color: var(--cyan); }
+    .kpi .v.pink{ color: var(--pink); }
+    .kpi .v.yellow{ color: var(--yellow); }
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      overflow:hidden;
+      border-radius: 12px;
+      border: 1px solid var(--border2);
+      background: #0e141c;
+    }
+    th, td{
+      border-bottom: 1px solid rgba(38,50,68,.7);
+      padding: 8px;
+      font-size: 12px;
+      vertical-align: middle;
+    }
+    th{
+      text-align:left;
+      color: var(--muted);
+      font-weight: 800;
+      background: rgba(18,24,33,.6);
+    }
+    tr:last-child td{ border-bottom: none; }
+
+    .log{
+      height: 220px;
+      overflow:auto;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Cascadia Code", monospace;
+      font-size: 12px;
+      background: #06080c;
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 10px;
+      line-height: 1.35;
+    }
+
+    .footerbar{
+      display:flex;
+      gap:10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 980px){
+      .wrap{ grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 
 <body>
-  <header>
-    <h1>Battery Tester Pro v2 (Mock UI)</h1>
-    <p>
-      Interfaz estática en HTML (sin CSS/JS). Usa las secciones para elegir modo y editar parámetros.
-    </p>
-    <hr />
-  </header>
-
-  <!-- =========================
-       CONEXIÓN / ESTADO GENERAL
-  ========================== -->
-  <section>
-    <h2>Conexión Serial (Referencia)</h2>
-
-    <p><strong>Nota:</strong> En web real el listado de puertos se haría con WebSerial o backend. Aquí es solo maqueta.</p>
-
-    <form>
-      <fieldset>
-        <legend>Puerto y Baudrate</legend>
-
-        <label for="port">Puerto:</label><br />
-        <input id="port" name="port" type="text" placeholder="COM3 / /dev/ttyUSB0" /><br /><br />
-
-        <label for="baud">Baudrate:</label><br />
-        <input id="baud" name="baud" type="number" value="115200" min="1200" step="100" /><br /><br />
-
-        <button type="button">Conectar</button>
-        <button type="button">Desconectar</button>
-        <button type="button">Refrescar puertos</button>
-      </fieldset>
-
-      <fieldset>
-        <legend>Lecturas rápidas (UI)</legend>
-
-        <label>Corriente (A):</label><br />
-        <output>--- A</output><br /><br />
-
-        <label>Voltaje (V):</label><br />
-        <output>--- V</output><br /><br />
-
-        <label>Duty (%):</label><br />
-        <output>--- %</output><br /><br />
-
-        <label>Estado / Modo:</label><br />
-        <output>IDLE</output>
-      </fieldset>
-    </form>
-
-    <hr />
-  </section>
-
-  <!-- =========================
-       SELECCIÓN DE MODOS
-  ========================== -->
-  <section>
-    <h2>Seleccionar Modo</h2>
-    <p>Abre el modo que quieras configurar:</p>
-
-    <!-- =========================
-         MODO MANUAL
-    ========================== -->
-    <details open>
-      <summary><strong>Manual</strong> (Carga / Descarga)</summary>
-      <form>
-        <fieldset>
-          <legend>Tipo de operación</legend>
-
-          <input type="radio" id="manual_charge" name="manual_dir" value="CHARGE" checked />
-          <label for="manual_charge">Carga (corriente positiva)</label><br />
-
-          <input type="radio" id="manual_discharge" name="manual_dir" value="DISCHARGE" />
-          <label for="manual_discharge">Descarga (corriente negativa)</label>
-        </fieldset>
-
-        <fieldset>
-          <legend>Parámetros</legend>
-
-          <label for="manual_current">Corriente (A):</label><br />
-          <!-- PyQt: range 0.01 - 5.0, decimals 2, step 0.1, default 0.5 -->
-          <input id="manual_current" name="manual_current" type="number"
-                 min="0.01" max="5.0" step="0.1" value="0.5" /><br /><br />
-
-          <label for="manual_window">Ventana gráfica (s):</label><br />
-          <!-- PyQt: range 10 - 600, default 60 -->
-          <input id="manual_window" name="manual_window" type="number"
-                 min="10" max="600" step="1" value="60" /><br /><br />
-
-          <p>Atajos (equivalente a botones rápidos):</p>
-          <button type="button">0.10 A</button>
-          <button type="button">0.25 A</button>
-          <button type="button">0.50 A</button>
-          <button type="button">1.00 A</button>
-          <button type="button">2.00 A</button>
-        </fieldset>
-
-        <button type="button">▶ Iniciar manual</button>
-      </form>
-    </details>
-
-    <hr />
-
-    <!-- =========================
-         MODO DESCARGA
-    ========================== -->
-    <details>
-      <summary><strong>Descarga</strong> (Controlada con corte)</summary>
-      <form>
-        <fieldset>
-          <legend>Parámetros</legend>
-
-          <label for="dch_current">Corriente descarga (A):</label><br />
-          <!-- PyQt: range 0.01 - 5.0, default 0.5 (internamente se usa negativa) -->
-          <input id="dch_current" name="dch_current" type="number"
-                 min="0.01" max="5.0" step="0.1" value="0.5" /><br /><br />
-
-          <label for="dch_cutoff">Voltaje de corte (V):</label><br />
-          <!-- PyQt: range 2.0 - 4.0, step 0.1, default 2.5 -->
-          <input id="dch_cutoff" name="dch_cutoff" type="number"
-                 min="2.0" max="4.0" step="0.1" value="2.5" /><br /><br />
-
-          <p>Atajos de corriente:</p>
-          <button type="button">0.10 A</button>
-          <button type="button">0.25 A</button>
-          <button type="button">0.50 A</button>
-          <button type="button">1.00 A</button>
-          <button type="button">2.00 A</button>
-        </fieldset>
-
-        <fieldset>
-          <legend>Indicadores (UI)</legend>
-          <label>Tiempo descarga:</label><br />
-          <output>--:--:--</output><br /><br />
-          <label>Capacidad descargada:</label><br />
-          <output>-- Ah</output>
-        </fieldset>
-
-        <button type="button">▶ Iniciar descarga</button>
-      </form>
-    </details>
-
-    <hr />
-
-    <!-- =========================
-         MODO CC/CV
-    ========================== -->
-    <details>
-      <summary><strong>CC / CV</strong> (Carga)</summary>
-      <form>
-        <p>
-          Carga CC hasta V objetivo, luego CV hasta I de corte.
-        </p>
-
-        <fieldset>
-          <legend>Parámetros</legend>
-
-          <label for="cccv_current">Corriente CC (A):</label><br />
-          <!-- PyQt: range 0.05 - 5.0, step 0.01?, default 0.5 -->
-          <input id="cccv_current" name="cccv_current" type="number"
-                 min="0.05" max="5.0" step="0.01" value="0.5" /><br /><br />
-
-          <label for="cccv_voltage">Voltaje objetivo (V):</label><br />
-          <!-- PyQt: range 3.0 - 4.5, step 0.01, default 4.2 -->
-          <input id="cccv_voltage" name="cccv_voltage" type="number"
-                 min="3.0" max="4.5" step="0.01" value="4.2" /><br /><br />
-
-          <label for="cccv_cutoff">Corriente corte (A):</label><br />
-          <!-- PyQt: range 0.01 - 1.0, decimals 3, default 0.05 -->
-          <input id="cccv_cutoff" name="cccv_cutoff" type="number"
-                 min="0.01" max="1.0" step="0.001" value="0.05" /><br /><br />
-        </fieldset>
-
-        <fieldset>
-          <legend>Fase (UI)</legend>
-          <output>Fase: --</output>
-        </fieldset>
-
-        <button type="button">▶ Iniciar CC/CV</button>
-      </form>
-    </details>
-
-    <hr />
-
-    <!-- =========================
-         MODO HPPC
-    ========================== -->
-    <details>
-      <summary><strong>HPPC</strong> (Reposo → Descarga → Reposo → Carga → Reposo)</summary>
-      <form>
-        <p>Secuencia: Reposo → Descarga → Reposo → Carga → Reposo.</p>
-
-        <fieldset>
-          <legend>Parámetros</legend>
-
-          <label for="hppc_i_discharge">I descarga (A):</label><br />
-          <!-- PyQt: range 0.1 - 5.0, default 1.0 -->
-          <input id="hppc_i_discharge" name="hppc_i_discharge" type="number"
-                 min="0.1" max="5.0" step="0.01" value="1.0" /><br /><br />
-
-          <label for="hppc_i_charge">I carga (A):</label><br />
-          <!-- PyQt: range 0.1 - 5.0, default 1.0 -->
-          <input id="hppc_i_charge" name="hppc_i_charge" type="number"
-                 min="0.1" max="5.0" step="0.01" value="1.0" /><br /><br />
-
-          <label for="hppc_t_discharge">t descarga (s):</label><br />
-          <!-- PyQt: range 1 - 60, default 10 -->
-          <input id="hppc_t_discharge" name="hppc_t_discharge" type="number"
-                 min="1" max="60" step="1" value="10" /><br /><br />
-
-          <label for="hppc_t_charge">t carga (s):</label><br />
-          <!-- PyQt: range 1 - 60, default 10 -->
-          <input id="hppc_t_charge" name="hppc_t_charge" type="number"
-                 min="1" max="60" step="1" value="10" /><br /><br />
-
-          <label for="hppc_t_rest">t reposo (s):</label><br />
-          <!-- PyQt: range 1 - 180, default 40 -->
-          <input id="hppc_t_rest" name="hppc_t_rest" type="number"
-                 min="1" max="180" step="1" value="40" /><br /><br />
-
-          <label for="hppc_cycles">Ciclos:</label><br />
-          <!-- PyQt: range 1 - 20, default 1 -->
-          <input id="hppc_cycles" name="hppc_cycles" type="number"
-                 min="1" max="20" step="1" value="1" /><br /><br />
-        </fieldset>
-
-        <fieldset>
-          <legend>Indicadores (UI)</legend>
-          <label>Tiempo total (estimado):</label><br />
-          <output>-- s</output><br /><br />
-          <label>Fase:</label><br />
-          <output>Fase: --</output>
-        </fieldset>
-
-        <button type="button">▶ Iniciar HPPC</button>
-      </form>
-    </details>
-
-    <hr />
-
-    <!-- =========================
-         MODO RESISTENCIA INTERNA
-    ========================== -->
-    <details>
-      <summary><strong>R. Int</strong> (Resistencia interna con pulsos)</summary>
-      <form>
-        <p>Tres pulsos para estimar resistencia interna.</p>
-
-        <fieldset>
-          <legend>Parámetros</legend>
-
-          <label for="rint_current">Corriente pulso (A):</label><br />
-          <!-- PyQt: range 0.1 - 5.0, default 1.0 -->
-          <input id="rint_current" name="rint_current" type="number"
-                 min="0.1" max="5.0" step="0.01" value="1.0" /><br /><br />
-
-          <label for="rint_duration">Duración pulso (s):</label><br />
-          <!-- PyQt: range 0.2 - 30.0, step 0.1, default 5.0 -->
-          <input id="rint_duration" name="rint_duration" type="number"
-                 min="0.2" max="30.0" step="0.1" value="5.0" /><br /><br />
-
-          <label for="rint_rest">Reposo (s):</label><br />
-          <!-- PyQt: range 0.5 - 300.0, step 0.5, default 20.0 -->
-          <input id="rint_rest" name="rint_rest" type="number"
-                 min="0.5" max="300.0" step="0.5" value="20.0" /><br /><br />
-
-          <label for="rint_type">Tipo de pulso:</label><br />
-          <select id="rint_type" name="rint_type">
-            <option value="DISCHARGE">Descarga</option>
-            <option value="CHARGE">Carga</option>
-          </select>
-        </fieldset>
-
-        <fieldset>
-          <legend>Resultados (UI)</legend>
-          <label>Estado:</label><br />
-          <output>Estado: --</output><br /><br />
-
-          <label>Mediciones:</label><br />
-          <output>--</output>
-        </fieldset>
-
-        <button type="button">▶ Iniciar medición R int</button>
-      </form>
-    </details>
-
-    <hr />
-
-    <!-- =========================
-         MODO DYNAMIC
-    ========================== -->
-    <details>
-      <summary><strong>Dynamic</strong> (Perfil por pasos)</summary>
-      <form>
-        <p>Pulsos personalizables (tabla de pasos). Sin JS no se pueden agregar filas dinámicamente; duplica filas manualmente.</p>
-
-        <fieldset>
-          <legend>Tabla de pasos</legend>
-
-          <table border="1" cellpadding="6" cellspacing="0">
-            <thead>
-              <tr>
-                <th>Corriente (A)</th>
-                <th>Duración (s)</th>
-                <th>Descanso (s)</th>
-                <th>Tipo</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Fila 1 -->
-              <tr>
-                <td><input type="number" step="0.01" min="0.01" max="5.0" value="0.5" /></td>
-                <td><input type="number" step="0.1" min="0.1" value="10" /></td>
-                <td><input type="number" step="0.1" min="0" value="5" /></td>
-                <td>
-                  <select>
-                    <option value="CHARGE">Carga</option>
-                    <option value="DISCHARGE" selected>Descarga</option>
-                  </select>
-                </td>
-              </tr>
-
-              <!-- Fila 2 -->
-              <tr>
-                <td><input type="number" step="0.01" min="0.01" max="5.0" value="1.0" /></td>
-                <td><input type="number" step="0.1" min="0.1" value="8" /></td>
-                <td><input type="number" step="0.1" min="0" value="2" /></td>
-                <td>
-                  <select>
-                    <option value="CHARGE" selected>Carga</option>
-                    <option value="DISCHARGE">Descarga</option>
-                  </select>
-                </td>
-              </tr>
-
-              <!-- Puedes duplicar más filas -->
-            </tbody>
-          </table>
-
-          <p>
-            <button type="button">Agregar (requiere JS)</button>
-            <button type="button">Eliminar (requiere JS)</button>
-            <button type="button">Limpiar (requiere JS)</button>
-          </p>
-
-          <label>Tiempo total (UI):</label><br />
-          <output>0 s</output><br /><br />
-
-          <label>Paso / fase (UI):</label><br />
-          <output>Paso: --</output>
-        </fieldset>
-
-        <button type="button">▶ Iniciar DYNAMIC</button>
-      </form>
-    </details>
-
-    <hr />
-
-  </section>
-
-  <!-- =========================
-       CONTROLES GENERALES
-  ========================== -->
-  <section>
-    <h2>Controles Generales</h2>
-
-    <button type="button">⛔ Parada de Emergencia</button>
-    <button type="button">🧹 Limpiar gráficas (UI)</button>
-    <button type="button">📄 Exportar datos CSV (UI)</button>
-
-    <hr />
-  </section>
-
-  <!-- =========================
-       CONSOLA / COMANDOS
-  ========================== -->
-  <section>
-    <h2>Consola Serial (Mock)</h2>
-
-    <p>Este bloque emula la consola y el envío de comandos manuales (sin JS no enviará nada).</p>
-
-    <label for="console">Consola:</label><br />
-    <textarea id="console" rows="8" cols="60" readonly placeholder="Salida serial..."></textarea><br /><br />
-
-    <label for="cmd">Comando manual:</label><br />
-    <input id="cmd" type="text" placeholder="CMD,..." size="40" />
-    <button type="button">Enviar</button>
-
-    <hr />
-  </section>
-
-  <footer>
-    <p><small>Mock UI — Solo estructura HTML (sin estilos ni lógica).</small></p>
-  </footer>
+  <div class="wrap">
+    <header>
+      <h1>🔋 Battery Tester Pro – UI por Ranura (Slots) + Modos</h1>
+      <p>
+        Interfaz web similar a tu GUI PyQt. Cada ranura guarda su configuración de modo y parámetros. (Todo en un solo archivo)
+      </p>
+    </header>
+
+    <!-- ==========================
+         PANEL IZQUIERDO: RANURA + ESTADOS + MODOS
+    =========================== -->
+    <section class="card">
+      <h2>Ranura (Slot) + Control rápido</h2>
+
+      <div class="row space">
+        <div class="col" style="flex:1; min-width: 220px;">
+          <label for="slotSelect">Selecciona ranura a parametrizar</label>
+          <select id="slotSelect"></select>
+          <div class="hint">Cada ranura guarda su propia configuración (modo + parámetros + pasos). Se persiste en el navegador.</div>
+        </div>
+
+        <div class="col" style="min-width: 180px;">
+          <label>Estado UI</label>
+          <div class="row" style="gap:8px;">
+            <span class="badge" id="badgeEnable"><span class="dot off" id="dotEnable"></span><span id="txtEnable">OFF</span></span>
+            <span class="badge" id="badgeLock"><span class="dot off" id="dotLock"></span><span id="txtLock">UNLOCK</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="subtle"></div>
+
+      <div class="row">
+        <button class="btn small" onclick="setSlotEnable(true)">▶ Activar</button>
+        <button class="btn small" onclick="setSlotEnable(false)">⏹ Apagar</button>
+        <button class="btn small" onclick="setSlotLock(true)">🔒 Bloquear</button>
+        <button class="btn small" onclick="setSlotLock(false)">🔓 Desbloquear</button>
+        <button class="btn red small" onclick="emergencyAll()">🚨 APAGADO TOTAL</button>
+      </div>
+
+      <div class="subtle"></div>
+
+      <h2>Seleccionar Modo</h2>
+      <div class="modes">
+        <button class="mode-btn active" data-mode="manual" onclick="selectMode('manual', this)">☝ Manual</button>
+        <button class="mode-btn" data-mode="discharge" onclick="selectMode('discharge', this)">🔋 Descarga</button>
+        <button class="mode-btn" data-mode="cccv" onclick="selectMode('cccv', this)">🔁 CC / CV</button>
+        <button class="mode-btn" data-mode="hppc" onclick="selectMode('hppc', this)">📈 HPPC</button>
+        <button class="mode-btn" data-mode="rint" onclick="selectMode('rint', this)">📏 R. Int</button>
+        <button class="mode-btn" data-mode="dynamic" onclick="selectMode('dynamic', this)">📊 Dynamic</button>
+      </div>
+
+      <div class="subtle"></div>
+
+      <div class="row">
+        <button class="btn wide primary" onclick="saveSlotConfig()">💾 Guardar configuración en esta ranura</button>
+        <button class="btn wide" onclick="loadSlotConfig()">📥 Cargar configuración de esta ranura</button>
+      </div>
+
+      <div class="footerbar">
+        <button class="btn teal" onclick="buildAndSend()">📤 Enviar configuración (modo actual) a API</button>
+        <button class="btn" onclick="exportSlotJson()">🧾 Exportar JSON de ranura</button>
+        <button class="btn" onclick="resetSlot()">♻ Reset ranura</button>
+      </div>
+
+      <div class="hint">
+        “Enviar configuración” genera un payload JSON según el modo actual (similar a tus comandos PyQt) y lo envía vía POST (si API_URL está configurada).
+      </div>
+
+      <div class="subtle"></div>
+
+      <h2>Ajustes API (opcional)</h2>
+      <div class="grid2">
+        <div class="col">
+          <label for="apiUrl">API_URL (POST)</label>
+          <input id="apiUrl" type="text" placeholder="https://xxxx.execute-api.us-east-1.amazonaws.com/iot" />
+        </div>
+        <div class="col">
+          <label for="apiTopic">Topic MQTT (en tu Lambda)</label>
+          <input id="apiTopic" type="text" value="esp32/sub" />
+        </div>
+      </div>
+      <div class="hint">
+        Si no vas a enviar todavía, puedes dejar esto vacío y solo usar el log/estado UI.
+      </div>
+    </section>
+
+    <!-- ==========================
+         PANEL DERECHO: FORMULARIOS DE MODOS + LOG
+    =========================== -->
+    <section class="card">
+      <h2>Parámetros del Modo</h2>
+
+      <!-- ====== MANUAL ====== -->
+      <div class="form active" id="manual">
+        <h3 style="margin:0 0 10px; color: var(--blue); font-size:14px;">Modo Manual</h3>
+
+        <div class="grid2">
+          <div class="col">
+            <label>Dirección</label>
+            <select id="manual_dir">
+              <option value="CHARGE">Carga (corriente positiva)</option>
+              <option value="DISCHARGE">Descarga (corriente negativa)</option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="manual_window">Ventana gráfica (s)</label>
+            <input id="manual_window" type="number" min="10" max="600" step="1" value="60" />
+          </div>
+        </div>
+
+        <div class="col" style="margin-top:10px;">
+          <label for="manual_current">Corriente (A) (0.01 – 5.00)</label>
+          <input id="manual_current" type="number" min="0.01" max="5.0" step="0.01" value="0.50" />
+          <div class="hint">En tu PyQt, descarga se envía como negativa. Aquí se aplica según “Dirección”.</div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <button class="btn small" onclick="setInput('manual_current',0.10)">0.10 A</button>
+          <button class="btn small" onclick="setInput('manual_current',0.25)">0.25 A</button>
+          <button class="btn small" onclick="setInput('manual_current',0.50)">0.50 A</button>
+          <button class="btn small" onclick="setInput('manual_current',1.00)">1.00 A</button>
+          <button class="btn small" onclick="setInput('manual_current',2.00)">2.00 A</button>
+        </div>
+
+        <div class="subtle"></div>
+        <button class="btn primary wide" onclick="buildAndSend()">▶ Iniciar Manual (Enviar)</button>
+      </div>
+
+      <!-- ====== DESCARGA ====== -->
+      <div class="form" id="discharge">
+        <h3 style="margin:0 0 10px; color: var(--orange); font-size:14px;">Modo Descarga</h3>
+
+        <div class="grid2">
+          <div class="col">
+            <label for="dch_current">Corriente descarga (A) (0.01 – 5.00)</label>
+            <input id="dch_current" type="number" min="0.01" max="5.0" step="0.01" value="0.50" />
+          </div>
+          <div class="col">
+            <label for="dch_cutoff">Voltaje de corte (V) (2.0 – 4.0)</label>
+            <input id="dch_cutoff" type="number" min="2.0" max="4.0" step="0.01" value="2.50" />
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px;">
+          <button class="btn small" onclick="setInput('dch_current',0.10)">0.10 A</button>
+          <button class="btn small" onclick="setInput('dch_current',0.25)">0.25 A</button>
+          <button class="btn small" onclick="setInput('dch_current',0.50)">0.50 A</button>
+          <button class="btn small" onclick="setInput('dch_current',1.00)">1.00 A</button>
+          <button class="btn small" onclick="setInput('dch_current',2.00)">2.00 A</button>
+        </div>
+
+        <div class="subtle"></div>
+        <button class="btn orange wide" onclick="buildAndSend()">▶ Iniciar Descarga (Enviar)</button>
+      </div>
+
+      <!-- ====== CC/CV ====== -->
+      <div class="form" id="cccv">
+        <h3 style="margin:0 0 6px; color: var(--cyan); font-size:14px;">Modo CC / CV</h3>
+        <p class="hint" style="margin-top:0;">Carga CC hasta V objetivo, luego CV hasta I de corte.</p>
+
+        <div class="grid2">
+          <div class="col">
+            <label for="cccv_current">Corriente CC (A) (0.05 – 5.0)</label>
+            <input id="cccv_current" type="number" min="0.05" max="5.0" step="0.01" value="0.50" />
+          </div>
+          <div class="col">
+            <label for="cccv_voltage">Voltaje objetivo (V) (3.0 – 4.5)</label>
+            <input id="cccv_voltage" type="number" min="3.0" max="4.5" step="0.01" value="4.20" />
+          </div>
+        </div>
+
+        <div class="col" style="margin-top:10px;">
+          <label for="cccv_cutoff">Corriente de corte (A) (0.01 – 1.0)</label>
+          <input id="cccv_cutoff" type="number" min="0.01" max="1.0" step="0.001" value="0.050" />
+        </div>
+
+        <div class="subtle"></div>
+        <button class="btn teal wide" onclick="buildAndSend()">▶ Iniciar CC/CV (Enviar)</button>
+      </div>
+
+      <!-- ====== HPPC ====== -->
+      <div class="form" id="hppc">
+        <h3 style="margin:0 0 6px; color: var(--yellow); font-size:14px;">Modo HPPC</h3>
+        <p class="hint" style="margin-top:0;">Secuencia: Reposo → Descarga → Reposo → Carga → Reposo.</p>
+
+        <div class="grid2">
+          <div class="col">
+            <label for="hppc_i_discharge">I descarga (A) (0.1 – 5.0)</label>
+            <input id="hppc_i_discharge" type="number" min="0.1" max="5.0" step="0.01" value="1.00" />
+          </div>
+          <div class="col">
+            <label for="hppc_i_charge">I carga (A) (0.1 – 5.0)</label>
+            <input id="hppc_i_charge" type="number" min="0.1" max="5.0" step="0.01" value="1.00" />
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px;">
+          <div class="col">
+            <label for="hppc_t_discharge">t descarga (s) (1 – 60)</label>
+            <input id="hppc_t_discharge" type="number" min="1" max="60" step="1" value="10" />
+          </div>
+          <div class="col">
+            <label for="hppc_t_charge">t carga (s) (1 – 60)</label>
+            <input id="hppc_t_charge" type="number" min="1" max="60" step="1" value="10" />
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px;">
+          <div class="col">
+            <label for="hppc_t_rest">t reposo (s) (1 – 180)</label>
+            <input id="hppc_t_rest" type="number" min="1" max="180" step="1" value="40" />
+          </div>
+          <div class="col">
+            <label for="hppc_cycles">Ciclos (1 – 20)</label>
+            <input id="hppc_cycles" type="number" min="1" max="20" step="1" value="1" />
+          </div>
+        </div>
+
+        <div class="subtle"></div>
+        <button class="btn wide" onclick="buildAndSend()">▶ Iniciar HPPC (Enviar)</button>
+      </div>
+
+      <!-- ====== RINT ====== -->
+      <div class="form" id="rint">
+        <h3 style="margin:0 0 6px; color: var(--green); font-size:14px;">Resistencia Interna</h3>
+        <p class="hint" style="margin-top:0;">Tres pulsos para estimar resistencia interna.</p>
+
+        <div class="grid2">
+          <div class="col">
+            <label for="rint_type">Tipo de pulso</label>
+            <select id="rint_type">
+              <option value="DISCHARGE">Descarga</option>
+              <option value="CHARGE">Carga</option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="rint_pulses">Número de pulsos</label>
+            <input id="rint_pulses" type="number" min="1" max="10" step="1" value="3" />
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px;">
+          <div class="col">
+            <label for="rint_current">Corriente pulso (A) (0.1 – 5.0)</label>
+            <input id="rint_current" type="number" min="0.1" max="5.0" step="0.01" value="1.00" />
+          </div>
+          <div class="col">
+            <label for="rint_duration">Duración pulso (s) (0.2 – 30.0)</label>
+            <input id="rint_duration" type="number" min="0.2" max="30.0" step="0.1" value="5.0" />
+          </div>
+        </div>
+
+        <div class="col" style="margin-top:10px;">
+          <label for="rint_rest">Reposo (s) (0.5 – 300.0)</label>
+          <input id="rint_rest" type="number" min="0.5" max="300.0" step="0.5" value="20.0" />
+        </div>
+
+        <div class="subtle"></div>
+        <button class="btn primary wide" onclick="buildAndSend()">▶ Medir Rint (Enviar)</button>
+      </div>
+
+      <!-- ====== DYNAMIC ====== -->
+      <div class="form" id="dynamic">
+        <h3 style="margin:0 0 6px; color: var(--orange); font-size:14px;">Modo Dynamic</h3>
+        <p class="hint" style="margin-top:0;">Pulsos personalizables por pasos (tabla editable).</p>
+
+        <div class="row" style="margin-bottom:10px;">
+          <button class="btn small" onclick="addDynamicRow()">➕ Agregar paso</button>
+          <button class="btn small" onclick="removeSelectedDynamicRow()">➖ Eliminar seleccionado</button>
+          <button class="btn small" onclick="clearDynamicRows()">🧹 Limpiar</button>
+          <span class="badge" style="margin-left:auto;">
+            <span class="dot on"></span>
+            <span id="dynamicCount">0 pasos</span>
+          </span>
+        </div>
+
+        <table id="dynamicTable">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Corriente (A)</th>
+              <th>Duración (s)</th>
+              <th>Descanso (s)</th>
+              <th>Tipo</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="subtle"></div>
+        <button class="btn orange wide" onclick="buildAndSend()">▶ Iniciar Dynamic (Enviar)</button>
+      </div>
+
+      <div class="subtle"></div>
+
+      <h2>Consola / Log</h2>
+      <div class="log" id="log"></div>
+
+      <div class="footerbar">
+        <button class="btn" onclick="clearLog()">Limpiar log</button>
+        <button class="btn red" onclick="stopNow()">CMD STOP</button>
+      </div>
+
+      <div class="hint">
+        <strong>Nota:</strong> “CMD STOP” aquí solo manda un payload de STOP a tu API (si API_URL está configurada).
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ===========================
+    // Persistencia local (por navegador)
+    // ===========================
+    const STORAGE_KEY = "battery_ui_slots_v1";
+
+    // Slots: puedes cambiar a 2, 4, 8, etc.
+    const SLOT_COUNT = 4; // 1..4 (ajusta aquí)
+    const DEFAULT_SLOT = 1;
+
+    // Payload API (opcional, para tu POST)
+    const DEFAULT_API_URL = ""; // si quieres, pega aquí tu endpoint
+    const DEFAULT_TOPIC = "esp32/sub";
+
+    // Estado global UI
+    let state = loadState() || makeDefaultState();
+    let currentSlot = DEFAULT_SLOT;
+    let currentMode = "manual";
+
+    // ===========================
+    // Helpers
+    // ===========================
+    function $(id){ return document.getElementById(id); }
+
+    function log(msg){
+      const t = new Date().toLocaleTimeString();
+      const el = $("log");
+      el.textContent += `[${t}] ${msg}\n`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function clearLog(){ $("log").textContent = ""; }
+
+    function setInput(id, val){
+      const el = $(id);
+      if (!el) return;
+      el.value = val;
+      log(`Set ${id} = ${val}`);
+    }
+
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+    function safeNumber(v, fallback=0){
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    // ===========================
+    // Estado por defecto
+    // ===========================
+    function makeDefaultSlotConfig(){
+      return {
+        enable: false,
+        lock: false,
+        mode: "manual",
+        params: {
+          manual: { dir: "CHARGE", currentA: 0.5, windowS: 60 },
+          discharge: { currentA: 0.5, cutoffV: 2.5 },
+          cccv: { ccCurrentA: 0.5, targetV: 4.2, cutoffA: 0.05 },
+          hppc: { iDischargeA: 1.0, iChargeA: 1.0, tDischargeS: 10, tChargeS: 10, tRestS: 40, cycles: 1 },
+          rint: { type: "DISCHARGE", pulses: 3, currentA: 1.0, durationS: 5.0, restS: 20.0 },
+          dynamic: { steps: [] }
+        }
+      };
+    }
+
+    function makeDefaultState(){
+      const slots = {};
+      for (let i=1; i<=SLOT_COUNT; i++){
+        slots[i] = makeDefaultSlotConfig();
+      }
+      return {
+        version: 1,
+        apiUrl: DEFAULT_API_URL,
+        topic: DEFAULT_TOPIC,
+        slots
+      };
+    }
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      }catch(e){
+        return null;
+      }
+    }
+
+    function saveState(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    // ===========================
+    // UI Init
+    // ===========================
+    function init(){
+      // API fields
+      $("apiUrl").value = state.apiUrl || "";
+      $("apiTopic").value = state.topic || DEFAULT_TOPIC;
+
+      // slot select
+      const sel = $("slotSelect");
+      sel.innerHTML = "";
+      for (let i=1; i<=SLOT_COUNT; i++){
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = `Ranura ${i}`;
+        sel.appendChild(opt);
+      }
+      sel.value = String(currentSlot);
+      sel.addEventListener("change", () => {
+        currentSlot = Number(sel.value);
+        loadSlotConfig();
+      });
+
+      // init dynamic table with 2 example rows if empty
+      if (state.slots[currentSlot].params.dynamic.steps.length === 0){
+        state.slots[currentSlot].params.dynamic.steps = [
+          { currentA: 0.5, durationS: 10, restS: 5, type: "DISCHARGE" },
+          { currentA: 1.0, durationS: 8, restS: 2, type: "CHARGE" }
+        ];
+        saveState();
+      }
+
+      // Load slot into form
+      loadSlotConfig();
+      // Ensure active mode is shown
+      selectMode(state.slots[currentSlot].mode || "manual", document.querySelector(".mode-btn[data-mode='manual']"));
+      log("UI inicializada.");
+    }
+
+    // ===========================
+    // Slot Status / Buttons
+    // ===========================
+    function refreshBadges(){
+      const s = state.slots[currentSlot];
+      // enable
+      $("dotEnable").className = "dot " + (s.enable ? "on" : "off");
+      $("txtEnable").textContent = s.enable ? "ON" : "OFF";
+      // lock
+      $("dotLock").className = "dot " + (s.lock ? "lock" : "off");
+      $("txtLock").textContent = s.lock ? "LOCK" : "UNLOCK";
+    }
+
+    function setSlotEnable(on){
+      const s = state.slots[currentSlot];
+      s.enable = !!on;
+      saveState();
+      refreshBadges();
+      log(`Ranura ${currentSlot}: enable = ${s.enable}`);
+      // opcional: enviar evento inmediato al backend
+      // sendImmediate({ type:"SLOT", slot: currentSlot, enable: s.enable });
+    }
+
+    function setSlotLock(on){
+      const s = state.slots[currentSlot];
+      s.lock = !!on;
+      saveState();
+      refreshBadges();
+      log(`Ranura ${currentSlot}: lock = ${s.lock}`);
+      // opcional: enviar evento inmediato al backend
+      // sendImmediate({ type:"SLOT", slot: currentSlot, lock: s.lock });
+    }
+
+    function emergencyAll(){
+      for (let i=1; i<=SLOT_COUNT; i++){
+        state.slots[i].enable = false;
+      }
+      saveState();
+      refreshBadges();
+      log("🚨 Emergencia: apagado total (UI).");
+      sendImmediate({ type:"EMERGENCY", emergency: true });
+    }
+
+    function stopNow(){
+      log("⛔ STOP solicitado.");
+      sendImmediate({ type:"STOP" });
+    }
+
+    // ===========================
+    // Modo UI tabs
+    // ===========================
+    function selectMode(mode, btn){
+      currentMode = mode;
+
+      document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+      if (btn) btn.classList.add("active");
+
+      document.querySelectorAll(".form").forEach(f => f.classList.remove("active"));
+      const form = document.getElementById(mode);
+      if (form) form.classList.add("active");
+
+      // Set slot's mode too (so each slot remembers last used mode)
+      state.slots[currentSlot].mode = mode;
+      saveState();
+
+      log(`Modo seleccionado (Ranura ${currentSlot}): ${mode}`);
+    }
+
+    // ===========================
+    // Save/Load Slot Config
+    // ===========================
+    function saveSlotConfig(){
+      // toma valores de inputs y los pasa a state
+      pullFormToState();
+      saveState();
+      log(`💾 Configuración guardada en Ranura ${currentSlot}.`);
+    }
+
+    function loadSlotConfig(){
+      // aplica state a inputs
+      pushStateToForm();
+      refreshBadges();
+      // set active mode button according to slot
+      const m = state.slots[currentSlot].mode || "manual";
+      const btn = document.querySelector(`.mode-btn[data-mode='${m}']`);
+      if (btn) selectMode(m, btn);
+      updateDynamicCount();
+      log(`📥 Configuración cargada de Ranura ${currentSlot}.`);
+    }
+
+    function resetSlot(){
+      state.slots[currentSlot] = makeDefaultSlotConfig();
+      // default dynamic example
+      state.slots[currentSlot].params.dynamic.steps = [
+        { currentA: 0.5, durationS: 10, restS: 5, type: "DISCHARGE" }
+      ];
+      saveState();
+      loadSlotConfig();
+      log(`♻ Ranura ${currentSlot} reseteada.`);
+    }
+
+    function exportSlotJson(){
+      pullFormToState();
+      const payload = {
+        slot: currentSlot,
+        ...state.slots[currentSlot]
+      };
+      log("🧾 JSON ranura:\n" + JSON.stringify(payload, null, 2));
+    }
+
+    // ===========================
+    // Form <-> State mapping
+    // ===========================
+    function pullFormToState(){
+      const s = state.slots[currentSlot];
+
+      // manual
+      s.params.manual.dir = $("manual_dir").value;
+      s.params.manual.currentA = clamp(safeNumber($("manual_current").value, 0.5), 0.01, 5.0);
+      s.params.manual.windowS = clamp(safeNumber($("manual_window").value, 60), 10, 600);
+
+      // discharge
+      s.params.discharge.currentA = clamp(safeNumber($("dch_current").value, 0.5), 0.01, 5.0);
+      s.params.discharge.cutoffV = clamp(safeNumber($("dch_cutoff").value, 2.5), 2.0, 4.0);
+
+      // cccv
+      s.params.cccv.ccCurrentA = clamp(safeNumber($("cccv_current").value, 0.5), 0.05, 5.0);
+      s.params.cccv.targetV = clamp(safeNumber($("cccv_voltage").value, 4.2), 3.0, 4.5);
+      s.params.cccv.cutoffA = clamp(safeNumber($("cccv_cutoff").value, 0.05), 0.01, 1.0);
+
+      // hppc
+      s.params.hppc.iDischargeA = clamp(safeNumber($("hppc_i_discharge").value, 1.0), 0.1, 5.0);
+      s.params.hppc.iChargeA = clamp(safeNumber($("hppc_i_charge").value, 1.0), 0.1, 5.0);
+      s.params.hppc.tDischargeS = clamp(safeNumber($("hppc_t_discharge").value, 10), 1, 60);
+      s.params.hppc.tChargeS = clamp(safeNumber($("hppc_t_charge").value, 10), 1, 60);
+      s.params.hppc.tRestS = clamp(safeNumber($("hppc_t_rest").value, 40), 1, 180);
+      s.params.hppc.cycles = clamp(safeNumber($("hppc_cycles").value, 1), 1, 20);
+
+      // rint
+      s.params.rint.type = $("rint_type").value;
+      s.params.rint.pulses = clamp(safeNumber($("rint_pulses").value, 3), 1, 10);
+      s.params.rint.currentA = clamp(safeNumber($("rint_current").value, 1.0), 0.1, 5.0);
+      s.params.rint.durationS = clamp(safeNumber($("rint_duration").value, 5.0), 0.2, 30.0);
+      s.params.rint.restS = clamp(safeNumber($("rint_rest").value, 20.0), 0.5, 300.0);
+
+      // dynamic steps
+      s.params.dynamic.steps = readDynamicTable();
+    }
+
+    function pushStateToForm(){
+      const s = state.slots[currentSlot];
+
+      // manual
+      $("manual_dir").value = s.params.manual.dir;
+      $("manual_current").value = s.params.manual.currentA;
+      $("manual_window").value = s.params.manual.windowS;
+
+      // discharge
+      $("dch_current").value = s.params.discharge.currentA;
+      $("dch_cutoff").value = s.params.discharge.cutoffV;
+
+      // cccv
+      $("cccv_current").value = s.params.cccv.ccCurrentA;
+      $("cccv_voltage").value = s.params.cccv.targetV;
+      $("cccv_cutoff").value = s.params.cccv.cutoffA;
+
+      // hppc
+      $("hppc_i_discharge").value = s.params.hppc.iDischargeA;
+      $("hppc_i_charge").value = s.params.hppc.iChargeA;
+      $("hppc_t_discharge").value = s.params.hppc.tDischargeS;
+      $("hppc_t_charge").value = s.params.hppc.tChargeS;
+      $("hppc_t_rest").value = s.params.hppc.tRestS;
+      $("hppc_cycles").value = s.params.hppc.cycles;
+
+      // rint
+      $("rint_type").value = s.params.rint.type;
+      $("rint_pulses").value = s.params.rint.pulses;
+      $("rint_current").value = s.params.rint.currentA;
+      $("rint_duration").value = s.params.rint.durationS;
+      $("rint_rest").value = s.params.rint.restS;
+
+      // dynamic
+      writeDynamicTable(s.params.dynamic.steps || []);
+    }
+
+    // ===========================
+    // Dynamic table (steps)
+    // ===========================
+    function updateDynamicCount(){
+      const steps = state.slots[currentSlot].params.dynamic.steps || [];
+      $("dynamicCount").textContent = `${steps.length} pasos`;
+    }
+
+    function addDynamicRow(){
+      const steps = readDynamicTable();
+      steps.push({ currentA: 0.5, durationS: 10, restS: 5, type: "DISCHARGE" });
+      writeDynamicTable(steps);
+      log("➕ Paso agregado (Dynamic).");
+    }
+
+    function clearDynamicRows(){
+      writeDynamicTable([]);
+      log("🧹 Pasos limpiados (Dynamic).");
+    }
+
+    function removeSelectedDynamicRow(){
+      const tbody = $("dynamicTable").querySelector("tbody");
+      const selected = tbody.querySelector("input[name='dyn_sel']:checked");
+      if (!selected){
+        log("⚠️ Selecciona una fila para eliminar.");
+        return;
+      }
+      const idx = Number(selected.value);
+      const steps = readDynamicTable();
+      steps.splice(idx, 1);
+      writeDynamicTable(steps);
+      log("➖ Paso eliminado (Dynamic).");
+    }
+
+    function writeDynamicTable(steps){
+      const tbody = $("dynamicTable").querySelector("tbody");
+      tbody.innerHTML = "";
+      steps.forEach((st, idx) => {
+        const tr = document.createElement("tr");
+
+        const tdSel = document.createElement("td");
+        tdSel.innerHTML = `<input type="radio" name="dyn_sel" value="${idx}">`;
+        tr.appendChild(tdSel);
+
+        const tdI = document.createElement("td");
+        tdI.innerHTML = `<input type="number" step="0.01" min="0.01" max="5.0" value="${st.currentA ?? 0.5}" data-k="currentA">`;
+        tr.appendChild(tdI);
+
+        const tdD = document.createElement("td");
+        tdD.innerHTML = `<input type="number" step="0.1" min="0.1" value="${st.durationS ?? 10}" data-k="durationS">`;
+        tr.appendChild(tdD);
+
+        const tdR = document.createElement("td");
+        tdR.innerHTML = `<input type="number" step="0.1" min="0" value="${st.restS ?? 0}" data-k="restS">`;
+        tr.appendChild(tdR);
+
+        const tdT = document.createElement("td");
+        const type = st.type ?? "DISCHARGE";
+        tdT.innerHTML = `
+          <select data-k="type">
+            <option value="CHARGE" ${type==="CHARGE"?"selected":""}>Carga</option>
+            <option value="DISCHARGE" ${type==="DISCHARGE"?"selected":""}>Descarga</option>
+          </select>`;
+        tr.appendChild(tdT);
+
+        tbody.appendChild(tr);
+      });
+
+      // actualizar en state + persistir
+      state.slots[currentSlot].params.dynamic.steps = steps;
+      saveState();
+      updateDynamicCount();
+    }
+
+    function readDynamicTable(){
+      const tbody = $("dynamicTable").querySelector("tbody");
+      const rows = Array.from(tbody.querySelectorAll("tr"));
+      const steps = rows.map(tr => {
+        const currentA = safeNumber(tr.querySelector("input[data-k='currentA']").value, 0.5);
+        const durationS = safeNumber(tr.querySelector("input[data-k='durationS']").value, 10);
+        const restS = safeNumber(tr.querySelector("input[data-k='restS']").value, 0);
+        const type = tr.querySelector("select[data-k='type']").value;
+
+        return {
+          currentA: clamp(Math.abs(currentA), 0.01, 5.0),
+          durationS: Math.max(0.1, durationS),
+          restS: Math.max(0, restS),
+          type
+        };
+      });
+      return steps;
+    }
+
+    // ===========================
+    // Build payload (similar a tu GUI PyQt)
+    // ===========================
+    function buildPayloadForMode(){
+      pullFormToState(); // asegura state actualizado
+
+      const slotCfg = state.slots[currentSlot];
+      const mode = currentMode;
+
+      let payload = {
+        slot: currentSlot,
+        enable: slotCfg.enable,
+        lock: slotCfg.lock,
+        mode: mode.toUpperCase(),
+        params: {}
+      };
+
+      if (mode === "manual"){
+        const p = slotCfg.params.manual;
+        // direction defines sign
+        payload.params = {
+          direction: p.dir,
+          currentA: p.dir === "DISCHARGE" ? -Math.abs(p.currentA) : Math.abs(p.currentA),
+          windowS: p.windowS
+        };
+      }
+      else if (mode === "discharge"){
+        const p = slotCfg.params.discharge;
+        payload.params = {
+          currentA: -Math.abs(p.currentA),
+          cutoffV: p.cutoffV
+        };
+      }
+      else if (mode === "cccv"){
+        const p = slotCfg.params.cccv;
+        payload.params = {
+          ccCurrentA: Math.abs(p.ccCurrentA),
+          targetV: p.targetV,
+          cutoffA: p.cutoffA
+        };
+      }
+      else if (mode === "hppc"){
+        const p = slotCfg.params.hppc;
+        payload.params = {
+          iDischargeA: Math.abs(p.iDischargeA),
+          iChargeA: Math.abs(p.iChargeA),
+          tDischargeS: p.tDischargeS,
+          tChargeS: p.tChargeS,
+          tRestS: p.tRestS,
+          cycles: p.cycles
+        };
+      }
+      else if (mode === "rint"){
+        const p = slotCfg.params.rint;
+        payload.params = {
+          pulseType: p.type,
+          pulses: p.pulses,
+          currentA: (p.type === "DISCHARGE") ? -Math.abs(p.currentA) : Math.abs(p.currentA),
+          durationS: p.durationS,
+          restS: p.restS
+        };
+      }
+      else if (mode === "dynamic"){
+        const p = slotCfg.params.dynamic;
+        payload.params = {
+          steps: (p.steps || []).map(s => ({
+            type: s.type,
+            currentA: s.type === "DISCHARGE" ? -Math.abs(s.currentA) : Math.abs(s.currentA),
+            durationS: s.durationS,
+            restS: s.restS
+          }))
+        };
+      }
+
+      return payload;
+    }
+
+    // ===========================
+    // API send (como tu implementación previa)
+    // ===========================
+    async function sendImmediate(message){
+      // Si no hay API_URL, solo log
+      const apiUrl = $("apiUrl").value.trim();
+      const topic = $("apiTopic").value.trim() || DEFAULT_TOPIC;
+
+      state.apiUrl = apiUrl;
+      state.topic = topic;
+      saveState();
+
+      if (!apiUrl){
+        log("ℹ️ API_URL vacío. (Solo UI) Payload:\n" + JSON.stringify(message, null, 2));
+        return;
+      }
+
+      log("📤 Enviando a API: " + JSON.stringify(message));
+
+      try{
+        const res = await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "publish",
+            topic: topic,
+            message: message
+          })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && (data.success === true || data.ok === true || data.status === "ok")){
+          log("✅ OK (API).");
+        } else {
+          log("⚠️ Respuesta API: " + JSON.stringify(data));
+        }
+      } catch(e){
+        log("❌ Error fetch: " + e.message);
+      }
+    }
+
+    function buildAndSend(){
+      // guarda primero para que quede persistido
+      saveSlotConfig();
+      const payload = buildPayloadForMode();
+      log("🧠 Payload generado:\n" + JSON.stringify(payload, null, 2));
+      sendImmediate(payload);
+    }
+
+    // ===========================
+    // Start
+    // ===========================
+    window.addEventListener("load", () => {
+      // si state no coincide con SLOT_COUNT, rehidrata
+      if (!state || !state.slots){
+        state = makeDefaultState();
+      } else {
+        // asegurar que existan slots hasta SLOT_COUNT
+        for (let i=1; i<=SLOT_COUNT; i++){
+          if (!state.slots[i]) state.slots[i] = makeDefaultSlotConfig();
+        }
+      }
+      init();
+    });
+  </script>
 </body>
 </html>
