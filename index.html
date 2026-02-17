@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Battery Control UI (Slots + Modes)</title>
+  <title>Battery Control UI (Ranuras + Modos + Battery ID)</title>
 
   <style>
     :root{
@@ -24,7 +24,6 @@
       --red:#f85149;
       --shadow: inset 0 0 0 1px var(--border);
     }
-
     *{ box-sizing:border-box; }
     body{
       margin:0;
@@ -32,7 +31,6 @@
       background: var(--bg);
       color: var(--txt);
     }
-
     .wrap{
       max-width: 1100px;
       margin: 0 auto;
@@ -41,7 +39,6 @@
       grid-template-columns: 440px 1fr;
       gap: 14px;
     }
-
     header{
       grid-column: 1 / -1;
       padding: 18px;
@@ -71,18 +68,10 @@
       align-items:center;
       flex-wrap: wrap;
     }
-
     .row.space{ justify-content: space-between; }
-    .col{
-      display:flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .col{ display:flex; flex-direction: column; gap: 8px; }
 
-    label{
-      font-size: 12px;
-      color: var(--muted);
-    }
+    label{ font-size: 12px; color: var(--muted); }
 
     input, select, textarea{
       width: 100%;
@@ -116,8 +105,6 @@
     .btn.teal{ background: var(--teal); border-color: rgba(13,138,166,.8); color:#fff; }
     .btn.orange{ background: #b45309; border-color: #d97706; color:#fff; }
     .btn.red{ background: #da3633; border-color: #f85149; color:#fff; }
-    .btn.ghost{ background: transparent; }
-
     .btn.small{ padding: 8px 10px; font-size: 12px; border-radius: 10px; }
     .btn.wide{ width: 100%; }
 
@@ -141,7 +128,6 @@
     .dot.on{ background: var(--green); }
     .dot.lock{ background: var(--yellow); }
     .dot.off{ background: #6e7681; }
-    .dot.emg{ background: var(--red); }
 
     .modes{
       display:grid;
@@ -189,24 +175,6 @@
       opacity: .9;
     }
 
-    .kpis{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    .kpi{
-      padding: 10px;
-      border-radius: 12px;
-      border: 1px solid var(--border2);
-      background: #0e141c;
-    }
-    .kpi .t{ font-size: 11px; color: var(--muted); margin-bottom: 4px; }
-    .kpi .v{ font-size: 18px; font-weight: 800; }
-    .kpi .v.cyan{ color: var(--cyan); }
-    .kpi .v.pink{ color: var(--pink); }
-    .kpi .v.yellow{ color: var(--yellow); }
-
     table{
       width:100%;
       border-collapse: collapse;
@@ -249,6 +217,9 @@
       margin-top: 10px;
     }
 
+    .ok{ color: #9effb0; }
+    .warn{ color: #ffd38a; }
+
     @media (max-width: 980px){
       .wrap{ grid-template-columns: 1fr; }
     }
@@ -258,32 +229,70 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>🔋 Battery Tester Pro – UI por Ranura (Slots) + Modos</h1>
+      <h1>🔋 Battery Tester – Ranuras + Modos + Identificación de Batería</h1>
       <p>
-        Interfaz web similar a tu GUI PyQt. Cada ranura guarda su configuración de modo y parámetros. (Todo en un solo archivo)
+        Selecciona ranura, define fabricante + ID (formato XX-XX), elige modo y envía configuración.
+        La web genera <strong>test_id</strong> automáticamente por envío.
       </p>
     </header>
 
     <!-- ==========================
-         PANEL IZQUIERDO: RANURA + ESTADOS + MODOS
+         PANEL IZQUIERDO: RANURA + ID BATERÍA + ESTADOS + MODOS
     =========================== -->
     <section class="card">
-      <h2>Ranura (Slot) + Control rápido</h2>
+      <h2>Ranura + Identificación de batería</h2>
 
       <div class="row space">
         <div class="col" style="flex:1; min-width: 220px;">
           <label for="slotSelect">Selecciona ranura a parametrizar</label>
           <select id="slotSelect"></select>
-          <div class="hint">Cada ranura guarda su propia configuración (modo + parámetros + pasos). Se persiste en el navegador.</div>
+          <div class="hint">Cada ranura guarda su fabricante + ID y su configuración de modo/params en el navegador.</div>
         </div>
 
         <div class="col" style="min-width: 180px;">
           <label>Estado UI</label>
           <div class="row" style="gap:8px;">
-            <span class="badge" id="badgeEnable"><span class="dot off" id="dotEnable"></span><span id="txtEnable">OFF</span></span>
-            <span class="badge" id="badgeLock"><span class="dot off" id="dotLock"></span><span id="txtLock">UNLOCK</span></span>
+            <span class="badge"><span class="dot off" id="dotEnable"></span><span id="txtEnable">OFF</span></span>
+            <span class="badge"><span class="dot off" id="dotLock"></span><span id="txtLock">UNLOCK</span></span>
           </div>
         </div>
+      </div>
+
+      <!-- NUEVOS BLOQUES: fabricante + identificador -->
+      <div class="subtle"></div>
+
+      <div class="grid2">
+        <div class="col">
+          <label for="fabricanteSelect">Fabricante (por ranura)</label>
+          <select id="fabricanteSelect">
+            <option value="Panasonic">Panasonic</option>
+            <option value="Samsung">Samsung</option>
+            <option value="Sony">Sony</option>
+          </select>
+          <div class="hint">Se guardará junto con el ID para construir <strong>battery_id</strong>.</div>
+        </div>
+
+        <div class="col">
+          <label for="batteryCodeInput">Identificador (formato XX-XX)</label>
+          <input
+            id="batteryCodeInput"
+            type="text"
+            inputmode="numeric"
+            placeholder="14-2  (se normaliza a 14-02)"
+            maxlength="5"
+          />
+          <div class="hint">
+            Solo números y guion. Acepta 1–2 dígitos por bloque (ej: 14-2, 07-03).
+          </div>
+        </div>
+      </div>
+
+      <div class="hint">
+        <strong>Battery ID final:</strong>
+        <span id="batteryIdPreview" class="ok">—</span>
+        <br/>
+        Se enviará al ESP32 como: <code>battery_id</code> (ej: <code>BAT_SAMSUNG_14-02</code>) y también
+        <code>fabricante</code> + <code>battery_code</code>.
       </div>
 
       <div class="subtle"></div>
@@ -311,18 +320,14 @@
       <div class="subtle"></div>
 
       <div class="row">
-        <button class="btn wide primary" onclick="saveSlotConfig()">💾 Guardar configuración en esta ranura</button>
-        <button class="btn wide" onclick="loadSlotConfig()">📥 Cargar configuración de esta ranura</button>
+        <button class="btn wide primary" onclick="saveSlotConfig()">💾 Guardar config (ranura)</button>
+        <button class="btn wide" onclick="loadSlotConfig()">📥 Cargar config (ranura)</button>
       </div>
 
       <div class="footerbar">
-        <button class="btn teal" onclick="buildAndSend()">📤 Enviar configuración (modo actual) a API</button>
-        <button class="btn" onclick="exportSlotJson()">🧾 Exportar JSON de ranura</button>
+        <button class="btn teal" onclick="buildAndSend()">📤 Enviar configuración a API</button>
+        <button class="btn" onclick="exportSlotJson()">🧾 Ver JSON de ranura (log)</button>
         <button class="btn" onclick="resetSlot()">♻ Reset ranura</button>
-      </div>
-
-      <div class="hint">
-        “Enviar configuración” genera un payload JSON según el modo actual (similar a tus comandos PyQt) y lo envía vía POST (si API_URL está configurada).
       </div>
 
       <div class="subtle"></div>
@@ -331,20 +336,20 @@
       <div class="grid2">
         <div class="col">
           <label for="apiUrl">API_URL (POST)</label>
-          <input id="apiUrl" type="text" placeholder="https://xxxx.execute-api.us-east-1.amazonaws.com/iot" />
+          <input id="apiUrl" type="text" placeholder="https://xxxx.execute-api.us-east-1.amazonaws.com" />
         </div>
         <div class="col">
-          <label for="apiTopic">Topic MQTT (en tu Lambda)</label>
+          <label for="apiTopic">Topic MQTT (Lambda lo fija a esp32/sub, puedes dejarlo)</label>
           <input id="apiTopic" type="text" value="esp32/sub" />
         </div>
       </div>
       <div class="hint">
-        Si no vas a enviar todavía, puedes dejar esto vacío y solo usar el log/estado UI.
+        Si API_URL está vacío, solo se mostrará el payload en el log (no envía).
       </div>
     </section>
 
     <!-- ==========================
-         PANEL DERECHO: FORMULARIOS DE MODOS + LOG
+         PANEL DERECHO: FORMULARIOS + LOG
     =========================== -->
     <section class="card">
       <h2>Parámetros del Modo</h2>
@@ -368,21 +373,12 @@
         </div>
 
         <div class="col" style="margin-top:10px;">
-          <label for="manual_current">Corriente (A) (0.01 – 5.00)</label>
+          <label for="manual_current">Corriente (A)</label>
           <input id="manual_current" type="number" min="0.01" max="5.0" step="0.01" value="0.50" />
-          <div class="hint">En tu PyQt, descarga se envía como negativa. Aquí se aplica según “Dirección”.</div>
-        </div>
-
-        <div class="row" style="margin-top:10px;">
-          <button class="btn small" onclick="setInput('manual_current',0.10)">0.10 A</button>
-          <button class="btn small" onclick="setInput('manual_current',0.25)">0.25 A</button>
-          <button class="btn small" onclick="setInput('manual_current',0.50)">0.50 A</button>
-          <button class="btn small" onclick="setInput('manual_current',1.00)">1.00 A</button>
-          <button class="btn small" onclick="setInput('manual_current',2.00)">2.00 A</button>
         </div>
 
         <div class="subtle"></div>
-        <button class="btn primary wide" onclick="buildAndSend()">▶ Iniciar Manual (Enviar)</button>
+        <button class="btn primary wide" onclick="buildAndSend()">▶ Enviar Manual</button>
       </div>
 
       <!-- ====== DESCARGA ====== -->
@@ -391,25 +387,17 @@
 
         <div class="grid2">
           <div class="col">
-            <label for="dch_current">Corriente descarga (A) (0.01 – 5.00)</label>
-            <input id="dch_current" type="number" min="0.01" max="5.0" step="0.01" value="0.50" />
+            <label for="dch_current">Corriente descarga (A)</label>
+            <input id="dch_current" type="number" min="0.01" max="5.0" step="0.01" value="1.00" />
           </div>
           <div class="col">
-            <label for="dch_cutoff">Voltaje de corte (V) (2.0 – 4.0)</label>
-            <input id="dch_cutoff" type="number" min="2.0" max="4.0" step="0.01" value="2.50" />
+            <label for="dch_cutoff">Voltaje de corte (V)</label>
+            <input id="dch_cutoff" type="number" min="2.0" max="5.0" step="0.01" value="4.00" />
           </div>
-        </div>
-
-        <div class="row" style="margin-top:10px;">
-          <button class="btn small" onclick="setInput('dch_current',0.10)">0.10 A</button>
-          <button class="btn small" onclick="setInput('dch_current',0.25)">0.25 A</button>
-          <button class="btn small" onclick="setInput('dch_current',0.50)">0.50 A</button>
-          <button class="btn small" onclick="setInput('dch_current',1.00)">1.00 A</button>
-          <button class="btn small" onclick="setInput('dch_current',2.00)">2.00 A</button>
         </div>
 
         <div class="subtle"></div>
-        <button class="btn orange wide" onclick="buildAndSend()">▶ Iniciar Descarga (Enviar)</button>
+        <button class="btn orange wide" onclick="buildAndSend()">▶ Enviar Descarga</button>
       </div>
 
       <!-- ====== CC/CV ====== -->
@@ -419,109 +407,107 @@
 
         <div class="grid2">
           <div class="col">
-            <label for="cccv_current">Corriente CC (A) (0.05 – 5.0)</label>
+            <label for="cccv_current">Corriente CC (A)</label>
             <input id="cccv_current" type="number" min="0.05" max="5.0" step="0.01" value="0.50" />
           </div>
           <div class="col">
-            <label for="cccv_voltage">Voltaje objetivo (V) (3.0 – 4.5)</label>
+            <label for="cccv_voltage">Voltaje objetivo (V)</label>
             <input id="cccv_voltage" type="number" min="3.0" max="4.5" step="0.01" value="4.20" />
           </div>
         </div>
 
         <div class="col" style="margin-top:10px;">
-          <label for="cccv_cutoff">Corriente de corte (A) (0.01 – 1.0)</label>
+          <label for="cccv_cutoff">Corriente corte (A)</label>
           <input id="cccv_cutoff" type="number" min="0.01" max="1.0" step="0.001" value="0.050" />
         </div>
 
         <div class="subtle"></div>
-        <button class="btn teal wide" onclick="buildAndSend()">▶ Iniciar CC/CV (Enviar)</button>
+        <button class="btn teal wide" onclick="buildAndSend()">▶ Enviar CC/CV</button>
       </div>
 
       <!-- ====== HPPC ====== -->
       <div class="form" id="hppc">
         <h3 style="margin:0 0 6px; color: var(--yellow); font-size:14px;">Modo HPPC</h3>
-        <p class="hint" style="margin-top:0;">Secuencia: Reposo → Descarga → Reposo → Carga → Reposo.</p>
 
         <div class="grid2">
           <div class="col">
-            <label for="hppc_i_discharge">I descarga (A) (0.1 – 5.0)</label>
+            <label for="hppc_i_discharge">I descarga (A)</label>
             <input id="hppc_i_discharge" type="number" min="0.1" max="5.0" step="0.01" value="1.00" />
           </div>
           <div class="col">
-            <label for="hppc_i_charge">I carga (A) (0.1 – 5.0)</label>
+            <label for="hppc_i_charge">I carga (A)</label>
             <input id="hppc_i_charge" type="number" min="0.1" max="5.0" step="0.01" value="1.00" />
           </div>
         </div>
 
         <div class="grid2" style="margin-top:10px;">
           <div class="col">
-            <label for="hppc_t_discharge">t descarga (s) (1 – 60)</label>
+            <label for="hppc_t_discharge">t descarga (s)</label>
             <input id="hppc_t_discharge" type="number" min="1" max="60" step="1" value="10" />
           </div>
           <div class="col">
-            <label for="hppc_t_charge">t carga (s) (1 – 60)</label>
+            <label for="hppc_t_charge">t carga (s)</label>
             <input id="hppc_t_charge" type="number" min="1" max="60" step="1" value="10" />
           </div>
         </div>
 
         <div class="grid2" style="margin-top:10px;">
           <div class="col">
-            <label for="hppc_t_rest">t reposo (s) (1 – 180)</label>
+            <label for="hppc_t_rest">t reposo (s)</label>
             <input id="hppc_t_rest" type="number" min="1" max="180" step="1" value="40" />
           </div>
           <div class="col">
-            <label for="hppc_cycles">Ciclos (1 – 20)</label>
+            <label for="hppc_cycles">ciclos</label>
             <input id="hppc_cycles" type="number" min="1" max="20" step="1" value="1" />
           </div>
         </div>
 
         <div class="subtle"></div>
-        <button class="btn wide" onclick="buildAndSend()">▶ Iniciar HPPC (Enviar)</button>
+        <button class="btn wide" onclick="buildAndSend()">▶ Enviar HPPC</button>
       </div>
 
       <!-- ====== RINT ====== -->
       <div class="form" id="rint">
         <h3 style="margin:0 0 6px; color: var(--green); font-size:14px;">Resistencia Interna</h3>
-        <p class="hint" style="margin-top:0;">Tres pulsos para estimar resistencia interna.</p>
 
         <div class="grid2">
           <div class="col">
-            <label for="rint_type">Tipo de pulso</label>
+            <label for="rint_type">Tipo</label>
             <select id="rint_type">
               <option value="DISCHARGE">Descarga</option>
               <option value="CHARGE">Carga</option>
             </select>
           </div>
           <div class="col">
-            <label for="rint_pulses">Número de pulsos</label>
+            <label for="rint_pulses">Pulsos</label>
             <input id="rint_pulses" type="number" min="1" max="10" step="1" value="3" />
           </div>
         </div>
 
         <div class="grid2" style="margin-top:10px;">
           <div class="col">
-            <label for="rint_current">Corriente pulso (A) (0.1 – 5.0)</label>
+            <label for="rint_current">Corriente (A)</label>
             <input id="rint_current" type="number" min="0.1" max="5.0" step="0.01" value="1.00" />
           </div>
           <div class="col">
-            <label for="rint_duration">Duración pulso (s) (0.2 – 30.0)</label>
+            <label for="rint_duration">Duración (s)</label>
             <input id="rint_duration" type="number" min="0.2" max="30.0" step="0.1" value="5.0" />
           </div>
         </div>
 
         <div class="col" style="margin-top:10px;">
-          <label for="rint_rest">Reposo (s) (0.5 – 300.0)</label>
+          <label for="rint_rest">Reposo (s)</label>
           <input id="rint_rest" type="number" min="0.5" max="300.0" step="0.5" value="20.0" />
         </div>
 
         <div class="subtle"></div>
-        <button class="btn primary wide" onclick="buildAndSend()">▶ Medir Rint (Enviar)</button>
+        <button class="btn primary wide" onclick="buildAndSend()">▶ Enviar RINT</button>
       </div>
 
       <!-- ====== DYNAMIC ====== -->
       <div class="form" id="dynamic">
         <h3 style="margin:0 0 6px; color: var(--orange); font-size:14px;">Modo Dynamic</h3>
-        <p class="hint" style="margin-top:0;">Pulsos personalizables por pasos (tabla editable).</p>
+        <p class="hint" style="margin-top:0;">Máx 10 pasos (según tu criterio de pruebas).</p>
 
         <div class="row" style="margin-bottom:10px;">
           <button class="btn small" onclick="addDynamicRow()">➕ Agregar paso</button>
@@ -547,7 +533,7 @@
         </table>
 
         <div class="subtle"></div>
-        <button class="btn orange wide" onclick="buildAndSend()">▶ Iniciar Dynamic (Enviar)</button>
+        <button class="btn orange wide" onclick="buildAndSend()">▶ Enviar Dynamic</button>
       </div>
 
       <div class="subtle"></div>
@@ -561,33 +547,23 @@
       </div>
 
       <div class="hint">
-        <strong>Nota:</strong> “CMD STOP” aquí solo manda un payload de STOP a tu API (si API_URL está configurada).
+        “CMD STOP” envía un payload simple (si API_URL está configurada). Si no, lo verás en el log.
       </div>
     </section>
   </div>
 
   <script>
     // ===========================
-    // Persistencia local (por navegador)
+    // Persistencia local
     // ===========================
-    const STORAGE_KEY = "battery_ui_slots_v1";
-
-    // Slots: puedes cambiar a 2, 4, 8, etc.
-    const SLOT_COUNT = 4; // 1..4 (ajusta aquí)
-    const DEFAULT_SLOT = 1;
-
-    // Payload API (opcional, para tu POST)
-    const DEFAULT_API_URL = ""; // si quieres, pega aquí tu endpoint
+    const STORAGE_KEY = "battery_ui_slots_v2";
+    const SLOT_COUNT = 4;
     const DEFAULT_TOPIC = "esp32/sub";
 
-    // Estado global UI
     let state = loadState() || makeDefaultState();
-    let currentSlot = DEFAULT_SLOT;
+    let currentSlot = 1;
     let currentMode = "manual";
 
-    // ===========================
-    // Helpers
-    // ===========================
     function $(id){ return document.getElementById(id); }
 
     function log(msg){
@@ -596,21 +572,49 @@
       el.textContent += `[${t}] ${msg}\n`;
       el.scrollTop = el.scrollHeight;
     }
-
     function clearLog(){ $("log").textContent = ""; }
 
-    function setInput(id, val){
-      const el = $(id);
-      if (!el) return;
-      el.value = val;
-      log(`Set ${id} = ${val}`);
-    }
-
     function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
-
     function safeNumber(v, fallback=0){
       const n = Number(v);
       return Number.isFinite(n) ? n : fallback;
+    }
+
+    // ===========================
+    // Generar test_id automático (por envío)
+    // ===========================
+    function generateTestId() {
+      const d = new Date();
+      const pad = (x, n=2) => String(x).padStart(n,'0');
+      const id =
+        `RUN_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_` +
+        `${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}_` +
+        `${pad(d.getMilliseconds(),3)}_${Math.floor(Math.random()*900+100)}`;
+      return id;
+    }
+
+    // ===========================
+    // Normalización Battery Code: acepta D-D, DD-D, D-DD, DD-DD => XX-XX
+    // ===========================
+    function normalizeBatteryCode(input) {
+      // deja solo digits y guion
+      let s = (input || "").replace(/[^\d-]/g, "");
+      // si hay más de un guion, deja el primero
+      const parts = s.split("-");
+      if (parts.length > 2) s = parts[0] + "-" + parts.slice(1).join("");
+
+      // debe tener un guion y 1-2 dígitos a cada lado
+      const m = s.match(/^(\d{1,2})-(\d{1,2})$/);
+      if (!m) return { ok:false, value:"" };
+
+      const left = m[1].padStart(2, "0");
+      const right = m[2].padStart(2, "0");
+      return { ok:true, value: `${left}-${right}` };
+    }
+
+    function makeBatteryId(fabricante, codeXX) {
+      const f = (fabricante || "UNKNOWN").toUpperCase();
+      return `BAT_${f}_${codeXX}`;
     }
 
     // ===========================
@@ -621,25 +625,27 @@
         enable: false,
         lock: false,
         mode: "manual",
+        battery: {
+          fabricante: "Samsung",
+          code: ""   // se guarda como XX-XX
+        },
         params: {
-          manual: { dir: "CHARGE", currentA: 0.5, windowS: 60 },
-          discharge: { currentA: 0.5, cutoffV: 2.5 },
-          cccv: { ccCurrentA: 0.5, targetV: 4.2, cutoffA: 0.05 },
-          hppc: { iDischargeA: 1.0, iChargeA: 1.0, tDischargeS: 10, tChargeS: 10, tRestS: 40, cycles: 1 },
-          rint: { type: "DISCHARGE", pulses: 3, currentA: 1.0, durationS: 5.0, restS: 20.0 },
-          dynamic: { steps: [] }
+          manual:   { dir: "CHARGE", currentA: 0.5, windowS: 60 },
+          discharge:{ currentA: 1.0, cutoffV: 4.0 },
+          cccv:     { ccCurrentA: 0.5, targetV: 4.2, cutoffA: 0.05 },
+          hppc:     { iDischargeA: 1.0, iChargeA: 1.0, tDischargeS: 10, tChargeS: 10, tRestS: 40, cycles: 1 },
+          rint:     { type: "DISCHARGE", pulses: 3, currentA: 1.0, durationS: 5.0, restS: 20.0 },
+          dynamic:  { steps: [] }
         }
       };
     }
 
     function makeDefaultState(){
       const slots = {};
-      for (let i=1; i<=SLOT_COUNT; i++){
-        slots[i] = makeDefaultSlotConfig();
-      }
+      for (let i=1; i<=SLOT_COUNT; i++) slots[i] = makeDefaultSlotConfig();
       return {
-        version: 1,
-        apiUrl: DEFAULT_API_URL,
+        version: 2,
+        apiUrl: "",
         topic: DEFAULT_TOPIC,
         slots
       };
@@ -650,100 +656,52 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return null;
         return JSON.parse(raw);
-      }catch(e){
-        return null;
-      }
+      }catch(e){ return null; }
     }
-
     function saveState(){
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
     // ===========================
-    // UI Init
-    // ===========================
-    function init(){
-      // API fields
-      $("apiUrl").value = state.apiUrl || "";
-      $("apiTopic").value = state.topic || DEFAULT_TOPIC;
-
-      // slot select
-      const sel = $("slotSelect");
-      sel.innerHTML = "";
-      for (let i=1; i<=SLOT_COUNT; i++){
-        const opt = document.createElement("option");
-        opt.value = String(i);
-        opt.textContent = `Ranura ${i}`;
-        sel.appendChild(opt);
-      }
-      sel.value = String(currentSlot);
-      sel.addEventListener("change", () => {
-        currentSlot = Number(sel.value);
-        loadSlotConfig();
-      });
-
-      // init dynamic table with 2 example rows if empty
-      if (state.slots[currentSlot].params.dynamic.steps.length === 0){
-        state.slots[currentSlot].params.dynamic.steps = [
-          { currentA: 0.5, durationS: 10, restS: 5, type: "DISCHARGE" },
-          { currentA: 1.0, durationS: 8, restS: 2, type: "CHARGE" }
-        ];
-        saveState();
-      }
-
-      // Load slot into form
-      loadSlotConfig();
-      // Ensure active mode is shown
-      selectMode(state.slots[currentSlot].mode || "manual", document.querySelector(".mode-btn[data-mode='manual']"));
-      log("UI inicializada.");
-    }
-
-    // ===========================
-    // Slot Status / Buttons
+    // UI: ranura / badges
     // ===========================
     function refreshBadges(){
       const s = state.slots[currentSlot];
-      // enable
       $("dotEnable").className = "dot " + (s.enable ? "on" : "off");
       $("txtEnable").textContent = s.enable ? "ON" : "OFF";
-      // lock
+
       $("dotLock").className = "dot " + (s.lock ? "lock" : "off");
       $("txtLock").textContent = s.lock ? "LOCK" : "UNLOCK";
     }
 
     function setSlotEnable(on){
-      const s = state.slots[currentSlot];
-      s.enable = !!on;
+      state.slots[currentSlot].enable = !!on;
       saveState();
       refreshBadges();
-      log(`Ranura ${currentSlot}: enable = ${s.enable}`);
-      // opcional: enviar evento inmediato al backend
-      // sendImmediate({ type:"SLOT", slot: currentSlot, enable: s.enable });
+      log(`Ranura ${currentSlot}: enable=${on}`);
     }
 
     function setSlotLock(on){
-      const s = state.slots[currentSlot];
-      s.lock = !!on;
+      state.slots[currentSlot].lock = !!on;
       saveState();
       refreshBadges();
-      log(`Ranura ${currentSlot}: lock = ${s.lock}`);
-      // opcional: enviar evento inmediato al backend
-      // sendImmediate({ type:"SLOT", slot: currentSlot, lock: s.lock });
+      log(`Ranura ${currentSlot}: lock=${on}`);
     }
 
     function emergencyAll(){
-      for (let i=1; i<=SLOT_COUNT; i++){
+      for (let i=1;i<=SLOT_COUNT;i++){
         state.slots[i].enable = false;
+        state.slots[i].lock = true;
       }
       saveState();
       refreshBadges();
       log("🚨 Emergencia: apagado total (UI).");
-      sendImmediate({ type:"EMERGENCY", emergency: true });
+      sendImmediate({ emergency: true });
     }
 
     function stopNow(){
       log("⛔ STOP solicitado.");
-      sendImmediate({ type:"STOP" });
+      sendImmediate({ mode: "STOP" });
     }
 
     // ===========================
@@ -759,7 +717,6 @@
       const form = document.getElementById(mode);
       if (form) form.classList.add("active");
 
-      // Set slot's mode too (so each slot remembers last used mode)
       state.slots[currentSlot].mode = mode;
       saveState();
 
@@ -767,30 +724,104 @@
     }
 
     // ===========================
+    // Battery UI: guardar/cargar por ranura
+    // ===========================
+    function updateBatteryPreview(){
+      const s = state.slots[currentSlot];
+      const fab = s.battery.fabricante || "—";
+      const code = s.battery.code || "—";
+      const ok = (code !== "—");
+      const txt = ok ? makeBatteryId(fab, code) : "—";
+      $("batteryIdPreview").textContent = txt;
+    }
+
+    function pushBatteryToUI(){
+      const s = state.slots[currentSlot];
+      $("fabricanteSelect").value = s.battery.fabricante || "Samsung";
+      $("batteryCodeInput").value = s.battery.code || "";
+      updateBatteryPreview();
+    }
+
+    function pullBatteryFromUI(){
+      const s = state.slots[currentSlot];
+      const fab = $("fabricanteSelect").value;
+      const rawCode = $("batteryCodeInput").value;
+
+      const norm = normalizeBatteryCode(rawCode);
+      if (!rawCode.trim()){
+        s.battery.fabricante = fab;
+        s.battery.code = "";
+        updateBatteryPreview();
+        saveState();
+        return { ok:false, msg:"Falta identificador de batería (XX-XX)." };
+      }
+      if (!norm.ok){
+        return { ok:false, msg:"Identificador inválido. Usa formato XX-XX (ej: 14-2, 07-03)." };
+      }
+
+      s.battery.fabricante = fab;
+      s.battery.code = norm.value;
+
+      // refleja el valor normalizado en el input
+      $("batteryCodeInput").value = norm.value;
+      saveState();
+      updateBatteryPreview();
+      return { ok:true };
+    }
+
+    // Eventos fabricante / code
+    function wireBatteryEvents(){
+      $("fabricanteSelect").addEventListener("change", () => {
+        pullBatteryFromUI(); // guarda y actualiza preview
+      });
+
+      // mientras escribe: restringe a [0-9-]
+      $("batteryCodeInput").addEventListener("input", (e) => {
+        e.target.value = e.target.value.replace(/[^\d-]/g, "");
+      });
+
+      // al salir del campo: normaliza a XX-XX si es posible
+      $("batteryCodeInput").addEventListener("blur", () => {
+        const res = pullBatteryFromUI();
+        if (!res.ok) {
+          log("⚠️ " + res.msg);
+          $("batteryIdPreview").textContent = "—";
+        }
+      });
+    }
+
+    // ===========================
     // Save/Load Slot Config
     // ===========================
     function saveSlotConfig(){
-      // toma valores de inputs y los pasa a state
+      // primero guarda battery
+      const b = pullBatteryFromUI();
+      if (!b.ok){
+        log("⚠️ " + b.msg);
+        // no bloqueamos el guardado total si quieres, pero lo ideal es exigirlo al enviar.
+      }
+
       pullFormToState();
       saveState();
       log(`💾 Configuración guardada en Ranura ${currentSlot}.`);
     }
 
     function loadSlotConfig(){
-      // aplica state a inputs
       pushStateToForm();
+      pushBatteryToUI();
       refreshBadges();
-      // set active mode button according to slot
+
       const m = state.slots[currentSlot].mode || "manual";
       const btn = document.querySelector(`.mode-btn[data-mode='${m}']`);
       if (btn) selectMode(m, btn);
+
       updateDynamicCount();
       log(`📥 Configuración cargada de Ranura ${currentSlot}.`);
     }
 
     function resetSlot(){
       state.slots[currentSlot] = makeDefaultSlotConfig();
-      // default dynamic example
+      // ejemplo steps
       state.slots[currentSlot].params.dynamic.steps = [
         { currentA: 0.5, durationS: 10, restS: 5, type: "DISCHARGE" }
       ];
@@ -800,35 +831,29 @@
     }
 
     function exportSlotJson(){
+      pullBatteryFromUI();
       pullFormToState();
-      const payload = {
-        slot: currentSlot,
-        ...state.slots[currentSlot]
-      };
+      const payload = { ranura: currentSlot, ...state.slots[currentSlot] };
       log("🧾 JSON ranura:\n" + JSON.stringify(payload, null, 2));
     }
 
     // ===========================
-    // Form <-> State mapping
+    // Form <-> State
     // ===========================
     function pullFormToState(){
       const s = state.slots[currentSlot];
 
-      // manual
       s.params.manual.dir = $("manual_dir").value;
       s.params.manual.currentA = clamp(safeNumber($("manual_current").value, 0.5), 0.01, 5.0);
       s.params.manual.windowS = clamp(safeNumber($("manual_window").value, 60), 10, 600);
 
-      // discharge
-      s.params.discharge.currentA = clamp(safeNumber($("dch_current").value, 0.5), 0.01, 5.0);
-      s.params.discharge.cutoffV = clamp(safeNumber($("dch_cutoff").value, 2.5), 2.0, 4.0);
+      s.params.discharge.currentA = clamp(safeNumber($("dch_current").value, 1.0), 0.01, 5.0);
+      s.params.discharge.cutoffV = clamp(safeNumber($("dch_cutoff").value, 4.0), 2.0, 5.0);
 
-      // cccv
       s.params.cccv.ccCurrentA = clamp(safeNumber($("cccv_current").value, 0.5), 0.05, 5.0);
       s.params.cccv.targetV = clamp(safeNumber($("cccv_voltage").value, 4.2), 3.0, 4.5);
       s.params.cccv.cutoffA = clamp(safeNumber($("cccv_cutoff").value, 0.05), 0.01, 1.0);
 
-      // hppc
       s.params.hppc.iDischargeA = clamp(safeNumber($("hppc_i_discharge").value, 1.0), 0.1, 5.0);
       s.params.hppc.iChargeA = clamp(safeNumber($("hppc_i_charge").value, 1.0), 0.1, 5.0);
       s.params.hppc.tDischargeS = clamp(safeNumber($("hppc_t_discharge").value, 10), 1, 60);
@@ -836,35 +861,29 @@
       s.params.hppc.tRestS = clamp(safeNumber($("hppc_t_rest").value, 40), 1, 180);
       s.params.hppc.cycles = clamp(safeNumber($("hppc_cycles").value, 1), 1, 20);
 
-      // rint
       s.params.rint.type = $("rint_type").value;
       s.params.rint.pulses = clamp(safeNumber($("rint_pulses").value, 3), 1, 10);
       s.params.rint.currentA = clamp(safeNumber($("rint_current").value, 1.0), 0.1, 5.0);
       s.params.rint.durationS = clamp(safeNumber($("rint_duration").value, 5.0), 0.2, 30.0);
       s.params.rint.restS = clamp(safeNumber($("rint_rest").value, 20.0), 0.5, 300.0);
 
-      // dynamic steps
       s.params.dynamic.steps = readDynamicTable();
     }
 
     function pushStateToForm(){
       const s = state.slots[currentSlot];
 
-      // manual
       $("manual_dir").value = s.params.manual.dir;
       $("manual_current").value = s.params.manual.currentA;
       $("manual_window").value = s.params.manual.windowS;
 
-      // discharge
       $("dch_current").value = s.params.discharge.currentA;
       $("dch_cutoff").value = s.params.discharge.cutoffV;
 
-      // cccv
       $("cccv_current").value = s.params.cccv.ccCurrentA;
       $("cccv_voltage").value = s.params.cccv.targetV;
       $("cccv_cutoff").value = s.params.cccv.cutoffA;
 
-      // hppc
       $("hppc_i_discharge").value = s.params.hppc.iDischargeA;
       $("hppc_i_charge").value = s.params.hppc.iChargeA;
       $("hppc_t_discharge").value = s.params.hppc.tDischargeS;
@@ -872,19 +891,17 @@
       $("hppc_t_rest").value = s.params.hppc.tRestS;
       $("hppc_cycles").value = s.params.hppc.cycles;
 
-      // rint
       $("rint_type").value = s.params.rint.type;
       $("rint_pulses").value = s.params.rint.pulses;
       $("rint_current").value = s.params.rint.currentA;
       $("rint_duration").value = s.params.rint.durationS;
       $("rint_rest").value = s.params.rint.restS;
 
-      // dynamic
       writeDynamicTable(s.params.dynamic.steps || []);
     }
 
     // ===========================
-    // Dynamic table (steps)
+    // Dynamic steps table
     // ===========================
     function updateDynamicCount(){
       const steps = state.slots[currentSlot].params.dynamic.steps || [];
@@ -893,6 +910,10 @@
 
     function addDynamicRow(){
       const steps = readDynamicTable();
+      if (steps.length >= 10){
+        log("⚠️ Máximo 10 pasos para pruebas.");
+        return;
+      }
       steps.push({ currentA: 0.5, durationS: 10, restS: 5, type: "DISCHARGE" });
       writeDynamicTable(steps);
       log("➕ Paso agregado (Dynamic).");
@@ -951,7 +972,6 @@
         tbody.appendChild(tr);
       });
 
-      // actualizar en state + persistir
       state.slots[currentSlot].params.dynamic.steps = steps;
       saveState();
       updateDynamicCount();
@@ -977,25 +997,44 @@
     }
 
     // ===========================
-    // Build payload (similar a tu GUI PyQt)
+    // Payload builder
     // ===========================
     function buildPayloadForMode(){
-      pullFormToState(); // asegura state actualizado
+      // Guardar battery y forms a state
+      const b = pullBatteryFromUI();
+      if (!b.ok) {
+        throw new Error(b.msg);
+      }
+      pullFormToState();
 
       const slotCfg = state.slots[currentSlot];
       const mode = currentMode;
+
+      // Construir battery_id
+      const fabricante = slotCfg.battery.fabricante;
+      const code = slotCfg.battery.code; // XX-XX
+      const battery_id = makeBatteryId(fabricante, code);
+
+      // test_id nuevo por envío
+      const test_id = generateTestId();
 
       let payload = {
         ranura: currentSlot,
         enable: slotCfg.enable,
         lock: slotCfg.lock,
+
+        // nuevos campos
+        fabricante: fabricante,
+        battery_code: code,
+        battery_id: battery_id,
+        test_id: test_id,
+
         mode: mode.toUpperCase(),
         params: {}
       };
 
       if (mode === "manual"){
         const p = slotCfg.params.manual;
-        // direction defines sign
         payload.params = {
           direction: p.dir,
           currentA: p.dir === "DISCHARGE" ? -Math.abs(p.currentA) : Math.abs(p.currentA),
@@ -1041,7 +1080,7 @@
       else if (mode === "dynamic"){
         const p = slotCfg.params.dynamic;
         payload.params = {
-          steps: (p.steps || []).map(s => ({
+          steps: (p.steps || []).slice(0, 10).map(s => ({
             type: s.type,
             currentA: s.type === "DISCHARGE" ? -Math.abs(s.currentA) : Math.abs(s.currentA),
             durationS: s.durationS,
@@ -1054,19 +1093,18 @@
     }
 
     // ===========================
-    // API send (como tu implementación previa)
+    // API send
     // ===========================
     async function sendImmediate(message){
-      // Si no hay API_URL, solo log
       const apiUrl = $("apiUrl").value.trim();
-      const topic = $("apiTopic").value.trim() || DEFAULT_TOPIC;
+      const topic = ($("apiTopic").value.trim() || DEFAULT_TOPIC);
 
       state.apiUrl = apiUrl;
       state.topic = topic;
       saveState();
 
       if (!apiUrl){
-        log("ℹ️ API_URL vacío. (Solo UI) Payload:\n" + JSON.stringify(message, null, 2));
+        log("ℹ️ API_URL vacío. Payload:\n" + JSON.stringify(message, null, 2));
         return;
       }
 
@@ -1084,7 +1122,7 @@
         });
 
         const data = await res.json().catch(() => ({}));
-        if (res.ok && (data.success === true || data.ok === true || data.status === "ok")){
+        if (res.ok && data.success === true){
           log("✅ OK (API).");
         } else {
           log("⚠️ Respuesta API: " + JSON.stringify(data));
@@ -1095,25 +1133,65 @@
     }
 
     function buildAndSend(){
-      // guarda primero para que quede persistido
-      saveSlotConfig();
-      const payload = buildPayloadForMode();
-      log("🧠 Payload generado:\n" + JSON.stringify(payload, null, 2));
-      sendImmediate(payload);
+      try{
+        saveSlotConfig(); // guarda configs actuales
+
+        const payload = buildPayloadForMode();
+
+        log("🧠 Payload generado:\n" + JSON.stringify(payload, null, 2));
+        sendImmediate(payload);
+
+      } catch (e){
+        log("⚠️ " + e.message);
+      }
     }
 
     // ===========================
-    // Start
+    // Init
     // ===========================
+    function init(){
+      $("apiUrl").value = state.apiUrl || "";
+      $("apiTopic").value = state.topic || DEFAULT_TOPIC;
+
+      const sel = $("slotSelect");
+      sel.innerHTML = "";
+      for (let i=1; i<=SLOT_COUNT; i++){
+        const opt = document.createElement("option");
+        opt.value = String(i);
+        opt.textContent = `Ranura ${i}`;
+        sel.appendChild(opt);
+      }
+
+      sel.value = String(currentSlot);
+      sel.addEventListener("change", () => {
+        currentSlot = Number(sel.value);
+        loadSlotConfig();
+      });
+
+      // init dynamic example
+      if ((state.slots[currentSlot].params.dynamic.steps || []).length === 0){
+        state.slots[currentSlot].params.dynamic.steps = [
+          { currentA: 0.5, durationS: 10, restS: 5, type: "DISCHARGE" }
+        ];
+        saveState();
+      }
+
+      wireBatteryEvents();
+      loadSlotConfig();
+
+      // selecciona el modo guardado
+      const m = state.slots[currentSlot].mode || "manual";
+      const btn = document.querySelector(`.mode-btn[data-mode='${m}']`);
+      if (btn) selectMode(m, btn);
+
+      log("UI inicializada.");
+    }
+
     window.addEventListener("load", () => {
-      // si state no coincide con SLOT_COUNT, rehidrata
-      if (!state || !state.slots){
-        state = makeDefaultState();
-      } else {
-        // asegurar que existan slots hasta SLOT_COUNT
-        for (let i=1; i<=SLOT_COUNT; i++){
-          if (!state.slots[i]) state.slots[i] = makeDefaultSlotConfig();
-        }
+      // rehidrata slots
+      if (!state || !state.slots) state = makeDefaultState();
+      for (let i=1; i<=SLOT_COUNT; i++){
+        if (!state.slots[i]) state.slots[i] = makeDefaultSlotConfig();
       }
       init();
     });
